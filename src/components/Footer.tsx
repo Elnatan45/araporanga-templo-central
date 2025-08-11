@@ -18,7 +18,7 @@ export function Footer() {
             <div className="space-y-2 text-sm text-white/70">
               <div className="flex items-center space-x-2">
                 <MapPin className="h-4 w-4 flex-shrink-0" />
-                <span>Araporanga - MG</span>
+                <span>Araporanga - CE</span>
               </div>
               <div className="flex items-center space-x-2">
                 <Phone className="h-4 w-4 flex-shrink-0" />
@@ -26,7 +26,7 @@ export function Footer() {
               </div>
               <div className="flex items-center space-x-2">
                 <Mail className="h-4 w-4 flex-shrink-0" />
-                <span>contato@adtemplocentral.com.br</span>
+                <span>adtcaraporanga@gmail.com</span>
               </div>
             </div>
           </div>
@@ -55,11 +55,11 @@ export function Footer() {
               </div>
               <div>
                 <span className="font-medium">Quarta-feira:</span>
-                <div className="ml-2">Culto de Oração - 19h30</div>
+                <div className="ml-2">Culto de Adoração - 19h00</div>
               </div>
               <div>
                 <span className="font-medium">Sexta-feira:</span>
-                <div className="ml-2">Culto de Jovens - 19h30</div>
+                <div className="ml-2">Culto de Doutrina - 19h00</div>
               </div>
             </div>
           </div>
