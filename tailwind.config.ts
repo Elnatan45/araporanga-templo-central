@@ -52,6 +52,13 @@ export default {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
 				},
+				church: {
+					gold: 'hsl(var(--church-gold))',
+					'gold-light': 'hsl(var(--church-gold-light))',
+					'blue-deep': 'hsl(var(--church-blue-deep))',
+					'blue-medium': 'hsl(var(--church-blue-medium))',
+					'blue-light': 'hsl(var(--church-blue-light))'
+				},
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',
 					foreground: 'hsl(var(--sidebar-foreground))',

@@ -14,7 +14,93 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      members: {
+        Row: {
+          civil_status: Database["public"]["Enums"]["civil_status"]
+          congregation: Database["public"]["Enums"]["congregation"]
+          created_at: string
+          full_name: string
+          gender: Database["public"]["Enums"]["gender"]
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          civil_status: Database["public"]["Enums"]["civil_status"]
+          congregation: Database["public"]["Enums"]["congregation"]
+          created_at?: string
+          full_name: string
+          gender: Database["public"]["Enums"]["gender"]
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          civil_status?: Database["public"]["Enums"]["civil_status"]
+          congregation?: Database["public"]["Enums"]["congregation"]
+          created_at?: string
+          full_name?: string
+          gender?: Database["public"]["Enums"]["gender"]
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      posts: {
+        Row: {
+          author_id: string | null
+          content: string | null
+          created_at: string
+          id: string
+          image_url: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          author_id?: string | null
+          content?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string | null
+          content?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          full_name: string | null
+          id: string
+          role: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          role?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          role?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +109,15 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      civil_status: "solteiro" | "casado" | "divorciado" | "viuvo"
+      congregation:
+        | "sede_araporanga"
+        | "congregacao_boa_vista"
+        | "congregacao_ponta_serra"
+        | "congregacao_balsamo"
+        | "congregacao_latao_baixo"
+        | "congregacao_latao_cima"
+      gender: "masculino" | "feminino"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +244,17 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      civil_status: ["solteiro", "casado", "divorciado", "viuvo"],
+      congregation: [
+        "sede_araporanga",
+        "congregacao_boa_vista",
+        "congregacao_ponta_serra",
+        "congregacao_balsamo",
+        "congregacao_latao_baixo",
+        "congregacao_latao_cima",
+      ],
+      gender: ["masculino", "feminino"],
+    },
   },
 } as const
