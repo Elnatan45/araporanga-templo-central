@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Menu, X, Church } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
+import churchLogo from "@/assets/church-logo.png";
 
 export function Navigation() {
   const [isOpen, setIsOpen] = useState(false);
@@ -21,7 +22,7 @@ export function Navigation() {
         <div className="flex justify-between h-16">
           <div className="flex items-center">
             <Link to="/" className="flex items-center space-x-2">
-              <Church className="h-8 w-8 text-primary" />
+              <img src={churchLogo} alt="Logo AD Templo Central" className="h-8 w-8" />
               <span className="font-bold text-xl text-primary">AD Templo Central</span>
             </Link>
           </div>

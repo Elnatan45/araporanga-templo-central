@@ -1,4 +1,5 @@
-import { Church, MapPin, Phone, Mail } from "lucide-react";
+import { MapPin, Phone, Mail } from "lucide-react";
+import churchLogo from "@/assets/church-logo.png";
 
 export function Footer() {
   return (
@@ -8,7 +9,7 @@ export function Footer() {
           {/* Church Info */}
           <div>
             <div className="flex items-center space-x-2 mb-6">
-              <Church className="h-8 w-8 text-church-gold" />
+              <img src={churchLogo} alt="Logo AD Templo Central" className="h-8 w-8" />
               <span className="font-bold text-xl">AD Templo Central</span>
             </div>
             <p className="text-white/80 mb-4">
@@ -48,10 +49,12 @@ export function Footer() {
               <div>
                 <span className="font-medium">Domingo:</span>
                 <div className="ml-2">
-                  <div>Escola Dominical - 9h</div>
-                  <div>Culto da Manhã - 10h</div>
                   <div>Culto da Noite - 19h</div>
                 </div>
+              </div>
+              <div>
+                <span className="font-medium">Segunda-feira:</span>
+                <div className="ml-2">Escola Bíblica - 19h</div>
               </div>
               <div>
                 <span className="font-medium">Quarta-feira:</span>

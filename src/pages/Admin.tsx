@@ -73,7 +73,7 @@ export default function Admin() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showLoginForm, setShowLoginForm] = useState(false);
-  const [loginData, setLoginData] = useState({ email: "", password: "" });
+  const [loginData, setLoginData] = useState({ email: "Elnata", password: "Araporanga" });
   const { toast } = useToast();
 
   useEffect(() => {
@@ -266,13 +266,13 @@ export default function Admin() {
               <CardContent>
                 <form onSubmit={handleLogin} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
+                    <Label htmlFor="username">Usuário</Label>
                     <Input
-                      id="email"
-                      type="email"
+                      id="username"
+                      type="text"
                       value={loginData.email}
                       onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
-                      placeholder="seu@email.com"
+                      placeholder="Elnata"
                       required
                     />
                   </div>
