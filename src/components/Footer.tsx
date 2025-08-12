@@ -1,5 +1,6 @@
 import { MapPin, Phone, Mail } from "lucide-react";
 import churchLogo from "@/assets/church-logo.png";
+import { ServiceSchedules } from "./ServiceSchedules";
 
 export function Footer() {
   return (
@@ -45,26 +46,7 @@ export function Footer() {
           {/* Service Times */}
           <div>
             <h3 className="font-semibold text-lg mb-4 text-church-gold">Horários de Culto</h3>
-            <div className="space-y-2 text-sm text-white/80">
-              <div>
-                <span className="font-medium">Domingo:</span>
-                <div className="ml-2">
-                  <div>Culto da Noite - 19h</div>
-                </div>
-              </div>
-              <div>
-                <span className="font-medium">Segunda-feira:</span>
-                <div className="ml-2">Escola Bíblica - 19h</div>
-              </div>
-              <div>
-                <span className="font-medium">Quarta-feira:</span>
-                <div className="ml-2">Culto de Adoração - 19h00</div>
-              </div>
-              <div>
-                <span className="font-medium">Sexta-feira:</span>
-                <div className="ml-2">Culto de Doutrina - 19h00</div>
-              </div>
-            </div>
+            <ServiceSchedules />
           </div>
         </div>
 

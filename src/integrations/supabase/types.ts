@@ -101,6 +101,39 @@ export type Database = {
         }
         Relationships: []
       }
+      service_schedules: {
+        Row: {
+          created_at: string
+          day_of_week: string
+          id: string
+          is_active: boolean
+          service_name: string
+          service_time: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          day_of_week: string
+          id?: string
+          is_active?: boolean
+          service_name: string
+          service_time: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          day_of_week?: string
+          id?: string
+          is_active?: boolean
+          service_name?: string
+          service_time?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
