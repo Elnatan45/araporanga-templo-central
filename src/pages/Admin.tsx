@@ -12,7 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Shield, Users, MessageSquare, Plus, Eye, EyeOff, Clock, Edit, Trash2 } from "lucide-react";
+import { Shield, Users, MessageSquare, Plus, Clock, Edit, Trash2 } from "lucide-react";
 import { User, Session } from '@supabase/supabase-js';
 
 interface Member {
@@ -32,26 +32,25 @@ interface Post {
   created_at: string;
 }
 
-interface ServiceSchedule {
-  id: string;
-  day_of_week: string;
-  service_name: string;
-  service_time: string;
-  sort_order: number;
-  is_active: boolean;
-}
-
 interface PostForm {
   title: string;
   content: string;
   imageUrl: string;
 }
 
+interface ServiceSchedule {
+  id: string;
+  day_of_week: string;
+  service_name: string;
+  service_time: string;
+  is_active: boolean;
+  sort_order: number;
+}
+
 interface ServiceForm {
   day_of_week: string;
   service_name: string;
   service_time: string;
-  sort_order: number;
 }
 
 const congregationLabels = {
@@ -82,7 +81,7 @@ export default function Admin() {
   const [loading, setLoading] = useState(true);
   const [members, setMembers] = useState<Member[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
-  const [schedules, setSchedules] = useState<ServiceSchedule[]>([]);
+  const [services, setServices] = useState<ServiceSchedule[]>([]);
   const [postForm, setPostForm] = useState<PostForm>({
     title: "",
     content: "",
@@ -92,9 +91,8 @@ export default function Admin() {
     day_of_week: "",
     service_name: "",
     service_time: "",
-    sort_order: 0,
   });
-  const [editingSchedule, setEditingSchedule] = useState<ServiceSchedule | null>(null);
+  const [editingService, setEditingService] = useState<ServiceSchedule | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showLoginForm, setShowLoginForm] = useState(false);
   const [loginData, setLoginData] = useState({ email: "Elnata", password: "Araporanga" });
@@ -139,7 +137,7 @@ export default function Admin() {
       if (profile?.role === 'admin') {
         fetchMembers();
         fetchPosts();
-        fetchSchedules();
+        fetchServices();
       } else {
         toast({
           title: "Acesso negado",
@@ -181,7 +179,7 @@ export default function Admin() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setShowLoginForm(false);
-    setLoginData({ email: "", password: "" });
+    setLoginData({ email: "Elnata", password: "Araporanga" });
   };
 
   const fetchMembers = async () => {
@@ -212,125 +210,19 @@ export default function Admin() {
     }
   };
 
-  const fetchSchedules = async () => {
+  const fetchServices = async () => {
     try {
       const { data, error } = await supabase
         .from('service_schedules')
         .select('*')
+        .eq('is_active', true)
         .order('sort_order', { ascending: true });
 
       if (error) throw error;
-      setSchedules(data || []);
+      setServices(data || []);
     } catch (error) {
       console.error('Erro ao carregar horários:', error);
     }
-  };
-
-  const handleCreateSchedule = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!serviceForm.day_of_week.trim() || !serviceForm.service_name.trim() || !serviceForm.service_time.trim()) {
-      toast({
-        title: "Campos obrigatórios",
-        description: "Por favor, preencha todos os campos.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    try {
-      if (editingSchedule) {
-        const { error } = await supabase
-          .from('service_schedules')
-          .update({
-            day_of_week: serviceForm.day_of_week,
-            service_name: serviceForm.service_name,
-            service_time: serviceForm.service_time,
-            sort_order: serviceForm.sort_order,
-          })
-          .eq('id', editingSchedule.id);
-
-        if (error) throw error;
-
-        toast({
-          title: "Horário atualizado!",
-          description: "O horário foi atualizado com sucesso.",
-        });
-      } else {
-        const { error } = await supabase
-          .from('service_schedules')
-          .insert({
-            day_of_week: serviceForm.day_of_week,
-            service_name: serviceForm.service_name,
-            service_time: serviceForm.service_time,
-            sort_order: serviceForm.sort_order,
-          });
-
-        if (error) throw error;
-
-        toast({
-          title: "Horário criado!",
-          description: "O horário foi criado com sucesso.",
-        });
-      }
-
-      setServiceForm({ day_of_week: "", service_name: "", service_time: "", sort_order: 0 });
-      setEditingSchedule(null);
-      fetchSchedules();
-    } catch (error) {
-      console.error('Erro ao salvar horário:', error);
-      toast({
-        title: "Erro ao salvar",
-        description: "Ocorreu um erro ao salvar o horário. Tente novamente.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleEditSchedule = (schedule: ServiceSchedule) => {
-    setEditingSchedule(schedule);
-    setServiceForm({
-      day_of_week: schedule.day_of_week,
-      service_name: schedule.service_name,
-      service_time: schedule.service_time,
-      sort_order: schedule.sort_order,
-    });
-  };
-
-  const handleDeleteSchedule = async (scheduleId: string) => {
-    if (!confirm("Tem certeza que deseja excluir este horário?")) return;
-
-    try {
-      const { error } = await supabase
-        .from('service_schedules')
-        .delete()
-        .eq('id', scheduleId);
-
-      if (error) throw error;
-
-      toast({
-        title: "Horário excluído!",
-        description: "O horário foi excluído com sucesso.",
-      });
-
-      fetchSchedules();
-    } catch (error) {
-      console.error('Erro ao excluir horário:', error);
-      toast({
-        title: "Erro ao excluir",
-        description: "Ocorreu um erro ao excluir o horário.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const cancelEditSchedule = () => {
-    setEditingSchedule(null);
-    setServiceForm({ day_of_week: "", service_name: "", service_time: "", sort_order: 0 });
   };
 
   const handleCreatePost = async (e: React.FormEvent) => {
@@ -376,6 +268,129 @@ export default function Admin() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleCreateService = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!serviceForm.day_of_week.trim() || !serviceForm.service_name.trim() || !serviceForm.service_time.trim()) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Por favor, preencha todos os campos.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const { error } = await supabase
+        .from('service_schedules')
+        .insert({
+          day_of_week: serviceForm.day_of_week,
+          service_name: serviceForm.service_name,
+          service_time: serviceForm.service_time,
+          sort_order: services.length + 1,
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Horário adicionado!",
+        description: "O horário de culto foi criado com sucesso.",
+      });
+
+      setServiceForm({ day_of_week: "", service_name: "", service_time: "" });
+      fetchServices();
+    } catch (error) {
+      console.error('Erro ao criar horário:', error);
+      toast({
+        title: "Erro ao criar",
+        description: "Ocorreu um erro ao criar o horário. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleUpdateService = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!editingService) return;
+
+    setIsSubmitting(true);
+
+    try {
+      const { error } = await supabase
+        .from('service_schedules')
+        .update({
+          day_of_week: serviceForm.day_of_week,
+          service_name: serviceForm.service_name,
+          service_time: serviceForm.service_time,
+        })
+        .eq('id', editingService.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Horário atualizado!",
+        description: "O horário de culto foi atualizado com sucesso.",
+      });
+
+      setServiceForm({ day_of_week: "", service_name: "", service_time: "" });
+      setEditingService(null);
+      fetchServices();
+    } catch (error) {
+      console.error('Erro ao atualizar horário:', error);
+      toast({
+        title: "Erro ao atualizar",
+        description: "Ocorreu um erro ao atualizar o horário. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleEditService = (service: ServiceSchedule) => {
+    setEditingService(service);
+    setServiceForm({
+      day_of_week: service.day_of_week,
+      service_name: service.service_name,
+      service_time: service.service_time,
+    });
+  };
+
+  const handleDeleteService = async (serviceId: string) => {
+    try {
+      const { error } = await supabase
+        .from('service_schedules')
+        .update({ is_active: false })
+        .eq('id', serviceId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Horário removido!",
+        description: "O horário foi removido com sucesso.",
+      });
+
+      fetchServices();
+    } catch (error) {
+      console.error('Erro ao remover horário:', error);
+      toast({
+        title: "Erro ao remover",
+        description: "Ocorreu um erro ao remover o horário. Tente novamente.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const cancelEdit = () => {
+    setEditingService(null);
+    setServiceForm({ day_of_week: "", service_name: "", service_time: "" });
   };
 
   if (loading) {
@@ -457,7 +472,7 @@ export default function Admin() {
             <div>
               <h1 className="text-4xl md:text-5xl font-bold mb-4">Painel Administrativo</h1>
               <p className="text-xl text-white/90">
-                Gerenciar membros e avisos da igreja
+                Gerenciar membros, avisos e horários da igreja
               </p>
             </div>
             <Button onClick={handleLogout} variant="outline" className="border-white text-white hover:bg-white hover:text-primary">
@@ -474,15 +489,15 @@ export default function Admin() {
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="members" className="flex items-center gap-2">
                 <Users className="h-4 w-4" />
-                Membros Cadastrados
+                Membros
               </TabsTrigger>
               <TabsTrigger value="posts" className="flex items-center gap-2">
                 <MessageSquare className="h-4 w-4" />
-                Gerenciar Avisos
+                Avisos
               </TabsTrigger>
-              <TabsTrigger value="schedules" className="flex items-center gap-2">
+              <TabsTrigger value="services" className="flex items-center gap-2">
                 <Clock className="h-4 w-4" />
-                Horários de Culto
+                Horários
               </TabsTrigger>
             </TabsList>
 
@@ -608,64 +623,54 @@ export default function Admin() {
               </div>
             </TabsContent>
 
-            <TabsContent value="schedules">
+            <TabsContent value="services">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Create/Edit Schedule Form */}
+                {/* Create/Edit Service Form */}
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <Plus className="h-5 w-5" />
-                      {editingSchedule ? "Editar Horário" : "Criar Novo Horário"}
+                      {editingService ? <Edit className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
+                      {editingService ? 'Editar Horário' : 'Adicionar Horário'}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <form onSubmit={handleCreateSchedule} className="space-y-4">
+                    <form onSubmit={editingService ? handleUpdateService : handleCreateService} className="space-y-4">
                       <div className="space-y-2">
-                        <Label htmlFor="day_of_week">Dia da Semana *</Label>
+                        <Label htmlFor="dayOfWeek">Dia da Semana *</Label>
                         <Input
-                          id="day_of_week"
+                          id="dayOfWeek"
                           value={serviceForm.day_of_week}
                           onChange={(e) => setServiceForm({ ...serviceForm, day_of_week: e.target.value })}
-                          placeholder="Domingo, Segunda-feira, etc."
+                          placeholder="ex: Domingo, Segunda-feira..."
                           required
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="service_name">Nome do Culto *</Label>
+                        <Label htmlFor="serviceName">Nome do Culto *</Label>
                         <Input
-                          id="service_name"
+                          id="serviceName"
                           value={serviceForm.service_name}
                           onChange={(e) => setServiceForm({ ...serviceForm, service_name: e.target.value })}
-                          placeholder="Culto da Noite, Escola Bíblica, etc."
+                          placeholder="ex: Culto da Noite, Escola Bíblica..."
                           required
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="service_time">Horário *</Label>
+                        <Label htmlFor="serviceTime">Horário *</Label>
                         <Input
-                          id="service_time"
+                          id="serviceTime"
                           value={serviceForm.service_time}
                           onChange={(e) => setServiceForm({ ...serviceForm, service_time: e.target.value })}
-                          placeholder="19h, 19h00, etc."
+                          placeholder="ex: 19h, 19h30..."
                           required
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="sort_order">Ordem de Exibição</Label>
-                        <Input
-                          id="sort_order"
-                          type="number"
-                          value={serviceForm.sort_order}
-                          onChange={(e) => setServiceForm({ ...serviceForm, sort_order: parseInt(e.target.value) || 0 })}
-                          placeholder="0"
                         />
                       </div>
                       <div className="flex gap-2">
                         <Button type="submit" disabled={isSubmitting} variant="hero" className="flex-1">
-                          {isSubmitting ? "Salvando..." : editingSchedule ? "Atualizar" : "Criar Horário"}
+                          {isSubmitting ? "Salvando..." : (editingService ? "Atualizar" : "Adicionar")}
                         </Button>
-                        {editingSchedule && (
-                          <Button type="button" variant="outline" onClick={cancelEditSchedule}>
+                        {editingService && (
+                          <Button type="button" onClick={cancelEdit} variant="outline">
                             Cancelar
                           </Button>
                         )}
@@ -674,48 +679,41 @@ export default function Admin() {
                   </CardContent>
                 </Card>
 
-                {/* Schedules List */}
+                {/* Services List */}
                 <Card>
                   <CardHeader>
-                    <CardTitle>Horários Configurados ({schedules.length})</CardTitle>
+                    <CardTitle>Horários de Culto ({services.length})</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    {schedules.length === 0 ? (
+                    {services.length === 0 ? (
                       <div className="text-center py-8">
                         <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                        <p className="text-muted-foreground">Nenhum horário configurado ainda.</p>
+                        <p className="text-muted-foreground">Nenhum horário cadastrado ainda.</p>
                       </div>
                     ) : (
-                      <div className="space-y-4 max-h-96 overflow-y-auto">
-                        {schedules.map((schedule) => (
-                          <div key={schedule.id} className="border rounded-lg p-4">
-                            <div className="flex justify-between items-start">
-                              <div>
-                                <h3 className="font-semibold text-primary">{schedule.day_of_week}</h3>
-                                <p className="text-sm text-muted-foreground">
-                                  {schedule.service_name} - {schedule.service_time}
-                                </p>
-                                <p className="text-xs text-muted-foreground">
-                                  Ordem: {schedule.sort_order} | {schedule.is_active ? "Ativo" : "Inativo"}
-                                </p>
-                              </div>
-                              <div className="flex gap-2">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleEditSchedule(schedule)}
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleDeleteSchedule(schedule.id)}
-                                  className="text-red-600 hover:text-red-700"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
+                      <div className="space-y-4">
+                        {services.map((service) => (
+                          <div key={service.id} className="border rounded-lg p-4 flex justify-between items-center">
+                            <div>
+                              <h3 className="font-semibold text-primary">{service.day_of_week}</h3>
+                              <p className="text-sm text-muted-foreground">{service.service_name} - {service.service_time}</p>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleEditService(service)}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleDeleteService(service.id)}
+                                className="text-destructive hover:text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
                             </div>
                           </div>
                         ))}
