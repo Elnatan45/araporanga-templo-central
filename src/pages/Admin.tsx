@@ -75,10 +75,8 @@ const genderLabels = {
 };
 
 export default function Admin() {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [members, setMembers] = useState<Member[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
   const [services, setServices] = useState<ServiceSchedule[]>([]);
@@ -94,92 +92,38 @@ export default function Admin() {
   });
   const [editingService, setEditingService] = useState<ServiceSchedule | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showLoginForm, setShowLoginForm] = useState(false);
-  const [loginData, setLoginData] = useState({ email: "Elnata", password: "Araporanga" });
+  const [loginData, setLoginData] = useState({ username: "", password: "" });
   const { toast } = useToast();
 
   useEffect(() => {
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        setIsAuthenticated(!!session?.user);
-        if (!session?.user) {
-          setLoading(false);
-        }
-      }
-    );
-
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setIsAuthenticated(!!session?.user);
-      if (session?.user) {
-        checkAdminAccess();
-      } else {
-        setLoading(false);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const checkAdminAccess = async () => {
-    try {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('user_id', user?.id)
-        .single();
-
-      if (profile?.role === 'admin') {
-        fetchMembers();
-        fetchPosts();
-        fetchServices();
-      } else {
-        toast({
-          title: "Acesso negado",
-          description: "Você não tem permissão para acessar esta área.",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error('Erro ao verificar permissões:', error);
-    } finally {
-      setLoading(false);
+    if (isAuthenticated) {
+      fetchMembers();
+      fetchPosts();
+      fetchServices();
     }
-  };
+  }, [isAuthenticated]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      const redirectUrl = `${window.location.origin}/admin`;
-      const { error } = await supabase.auth.signInWithPassword({
-        email: loginData.email,
-        password: loginData.password,
-      });
-
-      if (error) throw error;
-
+    
+    if (loginData.username === "admin" && loginData.password === "admin") {
+      setIsAuthenticated(true);
       toast({
         title: "Login realizado com sucesso!",
         description: "Bem-vindo à área administrativa.",
       });
-    } catch (error: any) {
+    } else {
       toast({
         title: "Erro no login",
-        description: error.message || "Verifique suas credenciais.",
+        description: "Usuário ou senha incorretos.",
         variant: "destructive",
       });
     }
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    setShowLoginForm(false);
-    setLoginData({ email: "Elnata", password: "Araporanga" });
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    setLoginData({ username: "", password: "" });
   };
 
   const fetchMembers = async () => {
@@ -246,7 +190,7 @@ export default function Admin() {
           title: postForm.title,
           content: postForm.content || null,
           image_url: postForm.imageUrl || null,
-          author_id: user?.id,
+          author_id: null,
         });
 
       if (error) throw error;
@@ -431,9 +375,9 @@ export default function Admin() {
                     <Input
                       id="username"
                       type="text"
-                      value={loginData.email}
-                      onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
-                      placeholder="Elnata"
+                      value={loginData.username}
+                      onChange={(e) => setLoginData({ ...loginData, username: e.target.value })}
+                      placeholder="admin"
                       required
                     />
                   </div>
@@ -444,7 +388,7 @@ export default function Admin() {
                       type="password"
                       value={loginData.password}
                       onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
-                      placeholder="********"
+                      placeholder="admin"
                       required
                     />
                   </div>
