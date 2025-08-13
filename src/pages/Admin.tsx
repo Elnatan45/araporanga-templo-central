@@ -93,6 +93,10 @@ export default function Admin() {
   const [editingService, setEditingService] = useState<ServiceSchedule | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loginData, setLoginData] = useState({ username: "", password: "" });
+  const [passwordForm, setPasswordForm] = useState({ currentPassword: "", newPassword: "", confirmPassword: "" });
+  const [adminPassword, setAdminPassword] = useState(() => {
+    return localStorage.getItem('adminPassword') || 'admin';
+  });
   const { toast } = useToast();
 
   useEffect(() => {
@@ -106,7 +110,7 @@ export default function Admin() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (loginData.username === "admin" && loginData.password === "admin") {
+    if (loginData.username === "admin" && loginData.password === adminPassword) {
       setIsAuthenticated(true);
       toast({
         title: "Login realizado com sucesso!",
@@ -124,6 +128,46 @@ export default function Admin() {
   const handleLogout = () => {
     setIsAuthenticated(false);
     setLoginData({ username: "", password: "" });
+  };
+
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (passwordForm.currentPassword !== adminPassword) {
+      toast({
+        title: "Erro",
+        description: "Senha atual incorreta.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      toast({
+        title: "Erro",
+        description: "A confirmação da senha não confere.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (passwordForm.newPassword.length < 4) {
+      toast({
+        title: "Erro",
+        description: "A nova senha deve ter pelo menos 4 caracteres.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setAdminPassword(passwordForm.newPassword);
+    localStorage.setItem('adminPassword', passwordForm.newPassword);
+    setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+    
+    toast({
+      title: "Senha alterada!",
+      description: "Sua senha foi alterada com sucesso.",
+    });
   };
 
   const fetchMembers = async () => {
@@ -430,7 +474,7 @@ export default function Admin() {
       <section className="py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <Tabs defaultValue="members" className="space-y-8">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="members" className="flex items-center gap-2">
                 <Users className="h-4 w-4" />
                 Membros
@@ -442,6 +486,10 @@ export default function Admin() {
               <TabsTrigger value="services" className="flex items-center gap-2">
                 <Clock className="h-4 w-4" />
                 Horários
+              </TabsTrigger>
+              <TabsTrigger value="password" className="flex items-center gap-2">
+                <Shield className="h-4 w-4" />
+                Senha
               </TabsTrigger>
             </TabsList>
 
@@ -666,6 +714,57 @@ export default function Admin() {
                   </CardContent>
                 </Card>
               </div>
+            </TabsContent>
+
+            <TabsContent value="password">
+              <Card className="max-w-md mx-auto">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Shield className="h-5 w-5" />
+                    Alterar Senha
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handlePasswordChange} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="currentPassword">Senha Atual *</Label>
+                      <Input
+                        id="currentPassword"
+                        type="password"
+                        value={passwordForm.currentPassword}
+                        onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
+                        placeholder="Digite sua senha atual"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="newPassword">Nova Senha *</Label>
+                      <Input
+                        id="newPassword"
+                        type="password"
+                        value={passwordForm.newPassword}
+                        onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                        placeholder="Digite a nova senha"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="confirmPassword">Confirmar Nova Senha *</Label>
+                      <Input
+                        id="confirmPassword"
+                        type="password"
+                        value={passwordForm.confirmPassword}
+                        onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                        placeholder="Confirme a nova senha"
+                        required
+                      />
+                    </div>
+                    <Button type="submit" disabled={isSubmitting} variant="hero" className="w-full">
+                      Alterar Senha
+                    </Button>
+                  </form>
+                </CardContent>
+              </Card>
             </TabsContent>
           </Tabs>
         </div>
