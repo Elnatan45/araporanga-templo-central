@@ -10,6 +10,7 @@ export function Navigation() {
     { name: "Início", href: "/" },
     { name: "Avisos", href: "/avisos" },
     { name: "Cadastro", href: "/cadastro" },
+    { name: "Inscrição Palestra de Casais", href: "/inscricao-palestra" },
   ];
 
   const isActive = (href: string) => location.pathname === href;
