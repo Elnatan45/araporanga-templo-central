@@ -1,5 +1,4 @@
 import { MapPin, Phone, Mail } from "lucide-react";
-import churchLogo from "@/assets/church-logo.png";
 import { ServiceSchedules } from "./ServiceSchedules";
 
 export function Footer() {
@@ -10,7 +9,6 @@ export function Footer() {
           {/* Church Info */}
           <div>
             <div className="flex items-center space-x-2 mb-6">
-              <img src={churchLogo} alt="Logo AD Templo Central" className="h-8 w-8" />
               <span className="font-bold text-xl">AD Templo Central</span>
             </div>
             <p className="text-white/80 mb-4">
