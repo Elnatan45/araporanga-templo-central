@@ -53,6 +53,19 @@ interface ServiceForm {
   service_time: string;
 }
 
+interface LectureRegistration {
+  id: string;
+  husband_name: string;
+  husband_phone: string;
+  husband_cpf: string;
+  husband_email: string | null;
+  wife_name: string;
+  wife_phone: string;
+  wife_cpf: string;
+  wife_email: string | null;
+  created_at: string;
+}
+
 const congregationLabels = {
   sede_araporanga: "Sede Araporanga",
   congregacao_boa_vista: "Congregação da Boa Vista",
@@ -80,6 +93,8 @@ export default function Admin() {
   const [members, setMembers] = useState<Member[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
   const [services, setServices] = useState<ServiceSchedule[]>([]);
+  const [lectureRegistrations, setLectureRegistrations] = useState<LectureRegistration[]>([]);
+  const [lectureEnabled, setLectureEnabled] = useState(true);
   const [postForm, setPostForm] = useState<PostForm>({
     title: "",
     content: "",
@@ -95,7 +110,7 @@ export default function Admin() {
   const [loginData, setLoginData] = useState({ username: "", password: "" });
   const [passwordForm, setPasswordForm] = useState({ currentPassword: "", newPassword: "", confirmPassword: "" });
   const [adminPassword, setAdminPassword] = useState(() => {
-    return localStorage.getItem('adminPassword') || 'admin';
+    return localStorage.getItem('adminPassword') || 'Araporanga';
   });
   const { toast } = useToast();
 
@@ -104,6 +119,8 @@ export default function Admin() {
       fetchMembers();
       fetchPosts();
       fetchServices();
+      fetchLectureRegistrations();
+      fetchLectureConfig();
     }
   }, [isAuthenticated]);
 
@@ -381,6 +398,91 @@ export default function Admin() {
     setServiceForm({ day_of_week: "", service_name: "", service_time: "" });
   };
 
+  const fetchLectureRegistrations = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('lecture_registrations')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setLectureRegistrations(data || []);
+    } catch (error) {
+      console.error('Erro ao carregar inscrições:', error);
+    }
+  };
+
+  const fetchLectureConfig = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('app_config')
+        .select('value')
+        .eq('key', 'lecture_enabled')
+        .single();
+
+      if (error && error.code !== 'PGRST116') throw error;
+      setLectureEnabled(data?.value === 'true');
+    } catch (error) {
+      console.error('Erro ao carregar configuração:', error);
+    }
+  };
+
+  const handleDeleteLectureRegistration = async (registrationId: string) => {
+    try {
+      const { error } = await supabase
+        .from('lecture_registrations')
+        .delete()
+        .eq('id', registrationId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Inscrição removida!",
+        description: "A inscrição foi removida com sucesso.",
+      });
+
+      fetchLectureRegistrations();
+    } catch (error) {
+      console.error('Erro ao remover inscrição:', error);
+      toast({
+        title: "Erro ao remover",
+        description: "Ocorreu um erro ao remover a inscrição. Tente novamente.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleToggleLectureFeature = async () => {
+    try {
+      const newValue = !lectureEnabled;
+      const { error } = await supabase
+        .from('app_config')
+        .upsert({ 
+          key: 'lecture_enabled', 
+          value: newValue.toString() 
+        }, { 
+          onConflict: 'key' 
+        });
+
+      if (error) throw error;
+
+      setLectureEnabled(newValue);
+      toast({
+        title: newValue ? "Área da palestra ativada!" : "Área da palestra desativada!",
+        description: newValue 
+          ? "A área de inscrição para palestra foi ativada." 
+          : "A área de inscrição para palestra foi desativada.",
+      });
+    } catch (error) {
+      console.error('Erro ao alterar configuração:', error);
+      toast({
+        title: "Erro",
+        description: "Ocorreu um erro ao alterar a configuração. Tente novamente.",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen">
@@ -474,7 +576,7 @@ export default function Admin() {
       <section className="py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <Tabs defaultValue="members" className="space-y-8">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="members" className="flex items-center gap-2">
                 <Users className="h-4 w-4" />
                 Membros
@@ -486,6 +588,10 @@ export default function Admin() {
               <TabsTrigger value="services" className="flex items-center gap-2">
                 <Clock className="h-4 w-4" />
                 Horários
+              </TabsTrigger>
+              <TabsTrigger value="lecture" className="flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                Palestra
               </TabsTrigger>
               <TabsTrigger value="password" className="flex items-center gap-2">
                 <Shield className="h-4 w-4" />
@@ -714,6 +820,86 @@ export default function Admin() {
                   </CardContent>
                 </Card>
               </div>
+            </TabsContent>
+
+            <TabsContent value="lecture">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle>Inscrições Palestra de Casais ({lectureRegistrations.length})</CardTitle>
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">
+                        {lectureEnabled ? "Ativa" : "Inativa"}
+                      </span>
+                      <Button 
+                        onClick={handleToggleLectureFeature}
+                        variant={lectureEnabled ? "destructive" : "default"}
+                        size="sm"
+                      >
+                        {lectureEnabled ? "Desativar Área" : "Ativar Área"}
+                      </Button>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {lectureRegistrations.length === 0 ? (
+                    <div className="text-center py-8">
+                      <Users className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                      <h3 className="text-lg font-semibold text-muted-foreground mb-2">
+                        Nenhuma inscrição encontrada
+                      </h3>
+                      <p className="text-muted-foreground">
+                        As inscrições aparecerão aqui quando os casais se cadastrarem.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {lectureRegistrations.map((registration) => (
+                        <Card key={registration.id} className="p-4">
+                          <div className="flex justify-between items-start">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1">
+                              <div>
+                                <h4 className="font-semibold text-primary mb-2">Dados do Esposo</h4>
+                                <div className="space-y-1 text-sm">
+                                  <p><strong>Nome:</strong> {registration.husband_name}</p>
+                                  <p><strong>Telefone:</strong> {registration.husband_phone}</p>
+                                  <p><strong>CPF:</strong> {registration.husband_cpf}</p>
+                                  {registration.husband_email && (
+                                    <p><strong>Email:</strong> {registration.husband_email}</p>
+                                  )}
+                                </div>
+                              </div>
+                              <div>
+                                <h4 className="font-semibold text-primary mb-2">Dados da Esposa</h4>
+                                <div className="space-y-1 text-sm">
+                                  <p><strong>Nome:</strong> {registration.wife_name}</p>
+                                  <p><strong>Telefone:</strong> {registration.wife_phone}</p>
+                                  <p><strong>CPF:</strong> {registration.wife_cpf}</p>
+                                  {registration.wife_email && (
+                                    <p><strong>Email:</strong> {registration.wife_email}</p>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 ml-4">
+                              <span className="text-xs text-muted-foreground">
+                                {format(new Date(registration.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                              </span>
+                              <Button
+                                onClick={() => handleDeleteLectureRegistration(registration.id)}
+                                variant="destructive"
+                                size="sm"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             </TabsContent>
 
             <TabsContent value="password">

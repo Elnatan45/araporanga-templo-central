@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -11,6 +11,8 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
+import { supabase } from "@/integrations/supabase/client";
+import { Heart } from "lucide-react";
 
 const formSchema = z.object({
   nomeEsposo: z.string().min(2, "Nome do esposo deve ter pelo menos 2 caracteres"),
@@ -28,6 +30,8 @@ type FormData = z.infer<typeof formSchema>;
 export default function InscricaoPalestra() {
   const [qrCodeUrl, setQrCodeUrl] = useState<string>("");
   const [showPayment, setShowPayment] = useState(false);
+  const [lectureEnabled, setLectureEnabled] = useState(true);
+  const [loading, setLoading] = useState(true);
   
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -43,8 +47,45 @@ export default function InscricaoPalestra() {
     },
   });
 
+  useEffect(() => {
+    checkLectureStatus();
+  }, []);
+
+  const checkLectureStatus = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('app_config')
+        .select('value')
+        .eq('key', 'lecture_enabled')
+        .single();
+
+      if (error && error.code !== 'PGRST116') throw error;
+      setLectureEnabled(data?.value === 'true');
+    } catch (error) {
+      console.error('Erro ao verificar status da palestra:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const onSubmit = async (data: FormData) => {
     try {
+      // Salvar no banco de dados
+      const { error } = await supabase
+        .from('lecture_registrations')
+        .insert({
+          husband_name: data.nomeEsposo,
+          husband_phone: data.telefoneEsposo,
+          husband_cpf: data.cpfEsposo,
+          husband_email: data.emailEsposo || null,
+          wife_name: data.nomeEsposa,
+          wife_phone: data.telefoneEsposa,
+          wife_cpf: data.cpfEsposa,
+          wife_email: data.emailEsposa || null,
+        });
+
+      if (error) throw error;
+
       // Dados PIX para geração do QR Code
       const pixData = {
         pixKey: "103.646.613-21",
@@ -67,18 +108,56 @@ export default function InscricaoPalestra() {
       setQrCodeUrl(qrCodeDataUrl);
       setShowPayment(true);
       
-      toast.success("Inscrição realizada! Escaneie o QR Code para pagamento.");
+      toast.success("Inscrição realizada e dados salvos! Escaneie o QR Code para pagamento.");
     } catch (error) {
-      toast.error("Erro ao gerar QR Code. Tente novamente.");
+      console.error('Erro ao processar inscrição:', error);
+      toast.error("Erro ao processar inscrição. Tente novamente.");
     }
   };
 
   const handleWhatsAppRedirect = () => {
+    const formData = form.getValues();
     const message = encodeURIComponent(
-      "Olá! Realizei a inscrição para a Palestra de Casais e gostaria de enviar o comprovante de pagamento."
+      `Olá! Realizei a inscrição para a Palestra de Casais e gostaria de enviar o comprovante de pagamento.\n\nDados da inscrição:\nEsposo: ${formData.nomeEsposo}\nEsposa: ${formData.nomeEsposa}`
     );
     window.open(`https://wa.me/5588988236003?text=${message}`, "_blank");
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navigation />
+        <main className="container mx-auto px-4 py-8">
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Carregando...</p>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (!lectureEnabled) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navigation />
+        <main className="container mx-auto px-4 py-8">
+          <Card className="max-w-2xl mx-auto">
+            <CardContent className="text-center py-8">
+              <Heart className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+              <h2 className="text-2xl font-bold mb-4">Inscrições Encerradas</h2>
+              <p className="text-muted-foreground">
+                As inscrições para a Palestra de Casais foram encerradas.
+                Obrigado pelo interesse!
+              </p>
+            </CardContent>
+          </Card>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   if (showPayment) {
     return (

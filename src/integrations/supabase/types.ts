@@ -14,6 +14,72 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_config: {
+        Row: {
+          created_at: string
+          id: string
+          key: string
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          key: string
+          updated_at?: string
+          value: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          key?: string
+          updated_at?: string
+          value?: string
+        }
+        Relationships: []
+      }
+      lecture_registrations: {
+        Row: {
+          created_at: string
+          husband_cpf: string
+          husband_email: string | null
+          husband_name: string
+          husband_phone: string
+          id: string
+          updated_at: string
+          wife_cpf: string
+          wife_email: string | null
+          wife_name: string
+          wife_phone: string
+        }
+        Insert: {
+          created_at?: string
+          husband_cpf: string
+          husband_email?: string | null
+          husband_name: string
+          husband_phone: string
+          id?: string
+          updated_at?: string
+          wife_cpf: string
+          wife_email?: string | null
+          wife_name: string
+          wife_phone: string
+        }
+        Update: {
+          created_at?: string
+          husband_cpf?: string
+          husband_email?: string | null
+          husband_name?: string
+          husband_phone?: string
+          id?: string
+          updated_at?: string
+          wife_cpf?: string
+          wife_email?: string | null
+          wife_name?: string
+          wife_phone?: string
+        }
+        Relationships: []
+      }
       members: {
         Row: {
           civil_status: Database["public"]["Enums"]["civil_status"]
