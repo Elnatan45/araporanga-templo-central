@@ -82,6 +82,7 @@ export type Database = {
       }
       members: {
         Row: {
+          birth_date: string | null
           civil_status: Database["public"]["Enums"]["civil_status"]
           congregation: Database["public"]["Enums"]["congregation"]
           created_at: string
@@ -91,6 +92,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          birth_date?: string | null
           civil_status: Database["public"]["Enums"]["civil_status"]
           congregation: Database["public"]["Enums"]["congregation"]
           created_at?: string
@@ -100,6 +102,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          birth_date?: string | null
           civil_status?: Database["public"]["Enums"]["civil_status"]
           congregation?: Database["public"]["Enums"]["congregation"]
           created_at?: string

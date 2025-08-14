@@ -6,12 +6,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { UserCheck, Users } from "lucide-react";
+import { UserCheck, Users, CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 
 interface FormData {
   fullName: string;
+  birthDate: Date | undefined;
   civilStatus: string;
   gender: string;
   congregation: string;
@@ -41,6 +47,7 @@ const genderOptions = [
 export default function Cadastro() {
   const [formData, setFormData] = useState<FormData>({
     fullName: "",
+    birthDate: undefined,
     civilStatus: "",
     gender: "",
     congregation: "",
@@ -51,7 +58,7 @@ export default function Cadastro() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.fullName || !formData.civilStatus || !formData.gender || !formData.congregation) {
+    if (!formData.fullName || !formData.birthDate || !formData.civilStatus || !formData.gender || !formData.congregation) {
       toast({
         title: "Campos obrigatórios",
         description: "Por favor, preencha todos os campos.",
@@ -67,6 +74,7 @@ export default function Cadastro() {
         .from('members')
         .insert({
           full_name: formData.fullName,
+          birth_date: formData.birthDate?.toISOString().split('T')[0],
           civil_status: formData.civilStatus as any,
           gender: formData.gender as any,
           congregation: formData.congregation as any,
@@ -82,6 +90,7 @@ export default function Cadastro() {
       // Reset form
       setFormData({
         fullName: "",
+        birthDate: undefined,
         civilStatus: "",
         gender: "",
         congregation: "",
@@ -137,6 +146,40 @@ export default function Cadastro() {
                     placeholder="Digite seu nome completo"
                     required
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="birthDate">Data de Nascimento *</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant={"outline"}
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !formData.birthDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {formData.birthDate ? (
+                          format(formData.birthDate, "dd/MM/yyyy", { locale: ptBR })
+                        ) : (
+                          <span>Selecione a data</span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={formData.birthDate}
+                        onSelect={(date) => setFormData({ ...formData, birthDate: date })}
+                        disabled={(date) =>
+                          date > new Date() || date < new Date("1900-01-01")
+                        }
+                        initialFocus
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

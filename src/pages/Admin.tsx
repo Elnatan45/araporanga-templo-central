@@ -18,6 +18,7 @@ import { User, Session } from '@supabase/supabase-js';
 interface Member {
   id: string;
   full_name: string;
+  birth_date: string | null;
   civil_status: string;
   gender: string;
   congregation: string;
@@ -35,7 +36,7 @@ interface Post {
 interface PostForm {
   title: string;
   content: string;
-  imageUrl: string;
+  imageFile: File | null;
 }
 
 interface ServiceSchedule {
@@ -98,7 +99,7 @@ export default function Admin() {
   const [postForm, setPostForm] = useState<PostForm>({
     title: "",
     content: "",
-    imageUrl: "",
+    imageFile: null,
   });
   const [serviceForm, setServiceForm] = useState<ServiceForm>({
     day_of_week: "",
@@ -245,12 +246,33 @@ export default function Admin() {
     setIsSubmitting(true);
 
     try {
+      let imageUrl = null;
+
+      // Upload image if provided
+      if (postForm.imageFile) {
+        const fileExt = postForm.imageFile.name.split('.').pop();
+        const fileName = `${Math.random()}.${fileExt}`;
+        const filePath = `posts/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('posts')
+          .upload(filePath, postForm.imageFile);
+
+        if (uploadError) throw uploadError;
+
+        const { data } = supabase.storage
+          .from('posts')
+          .getPublicUrl(filePath);
+
+        imageUrl = data.publicUrl;
+      }
+
       const { error } = await supabase
         .from('posts')
         .insert({
           title: postForm.title,
           content: postForm.content || null,
-          image_url: postForm.imageUrl || null,
+          image_url: imageUrl,
           author_id: null,
         });
 
@@ -261,7 +283,7 @@ export default function Admin() {
         description: "O aviso foi criado com sucesso.",
       });
 
-      setPostForm({ title: "", content: "", imageUrl: "" });
+      setPostForm({ title: "", content: "", imageFile: null });
       fetchPosts();
     } catch (error) {
       console.error('Erro ao criar post:', error);
@@ -613,27 +635,34 @@ export default function Admin() {
                   ) : (
                     <div className="overflow-x-auto">
                       <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Nome</TableHead>
-                            <TableHead>Gênero</TableHead>
-                            <TableHead>Estado Civil</TableHead>
-                            <TableHead>Congregação</TableHead>
-                            <TableHead>Data de Cadastro</TableHead>
-                          </TableRow>
-                        </TableHeader>
+                         <TableHeader>
+                           <TableRow>
+                             <TableHead>Nome</TableHead>
+                             <TableHead>Data de Nascimento</TableHead>
+                             <TableHead>Gênero</TableHead>
+                             <TableHead>Estado Civil</TableHead>
+                             <TableHead>Congregação</TableHead>
+                             <TableHead>Data de Cadastro</TableHead>
+                           </TableRow>
+                         </TableHeader>
                         <TableBody>
-                          {members.map((member) => (
-                            <TableRow key={member.id}>
-                              <TableCell className="font-medium">{member.full_name}</TableCell>
-                              <TableCell>{genderLabels[member.gender as keyof typeof genderLabels]}</TableCell>
-                              <TableCell>{civilStatusLabels[member.civil_status as keyof typeof civilStatusLabels]}</TableCell>
-                              <TableCell>{congregationLabels[member.congregation as keyof typeof congregationLabels]}</TableCell>
-                              <TableCell>
-                                {format(new Date(member.created_at), "dd/MM/yyyy", { locale: ptBR })}
-                              </TableCell>
-                            </TableRow>
-                          ))}
+                           {members.map((member) => (
+                             <TableRow key={member.id}>
+                               <TableCell className="font-medium">{member.full_name}</TableCell>
+                               <TableCell>
+                                 {member.birth_date 
+                                   ? format(new Date(member.birth_date), "dd/MM/yyyy", { locale: ptBR })
+                                   : "Não informado"
+                                 }
+                               </TableCell>
+                               <TableCell>{genderLabels[member.gender as keyof typeof genderLabels]}</TableCell>
+                               <TableCell>{civilStatusLabels[member.civil_status as keyof typeof civilStatusLabels]}</TableCell>
+                               <TableCell>{congregationLabels[member.congregation as keyof typeof congregationLabels]}</TableCell>
+                               <TableCell>
+                                 {format(new Date(member.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                               </TableCell>
+                             </TableRow>
+                           ))}
                         </TableBody>
                       </Table>
                     </div>
@@ -674,15 +703,21 @@ export default function Admin() {
                           rows={4}
                         />
                       </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="imageUrl">URL da Imagem</Label>
-                        <Input
-                          id="imageUrl"
-                          value={postForm.imageUrl}
-                          onChange={(e) => setPostForm({ ...postForm, imageUrl: e.target.value })}
-                          placeholder="https://..."
-                        />
-                      </div>
+                       <div className="space-y-2">
+                         <Label htmlFor="imageFile">Imagem do Aviso</Label>
+                         <Input
+                           id="imageFile"
+                           type="file"
+                           accept="image/*"
+                           onChange={(e) => {
+                             const file = e.target.files?.[0] || null;
+                             setPostForm({ ...postForm, imageFile: file });
+                           }}
+                         />
+                         <p className="text-xs text-muted-foreground">
+                           Selecione uma imagem para ilustrar o aviso (opcional)
+                         </p>
+                       </div>
                       <Button type="submit" disabled={isSubmitting} variant="hero" className="w-full">
                         {isSubmitting ? "Publicando..." : "Publicar Aviso"}
                       </Button>
