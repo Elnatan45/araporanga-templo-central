@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 interface FormData {
   fullName: string;
   birthDate: Date | undefined;
+  birthYear: string;
   civilStatus: string;
   gender: string;
   congregation: string;
@@ -48,6 +49,7 @@ export default function Cadastro() {
   const [formData, setFormData] = useState<FormData>({
     fullName: "",
     birthDate: undefined,
+    birthYear: "",
     civilStatus: "",
     gender: "",
     congregation: "",
@@ -58,13 +60,29 @@ export default function Cadastro() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.fullName || !formData.birthDate || !formData.civilStatus || !formData.gender || !formData.congregation) {
+    if (!formData.fullName || (!formData.birthDate && !formData.birthYear) || !formData.civilStatus || !formData.gender || !formData.congregation) {
       toast({
         title: "Campos obrigatórios",
         description: "Por favor, preencha todos os campos.",
         variant: "destructive",
       });
       return;
+    }
+
+    // Create birth date from year if only year is provided
+    let birthDateToSubmit = formData.birthDate;
+    if (!birthDateToSubmit && formData.birthYear) {
+      const year = parseInt(formData.birthYear);
+      if (year >= 1900 && year <= new Date().getFullYear()) {
+        birthDateToSubmit = new Date(year, 0, 1); // January 1st of the year
+      } else {
+        toast({
+          title: "Ano inválido",
+          description: "Por favor, digite um ano válido entre 1900 e o ano atual.",
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
     setIsSubmitting(true);
@@ -74,7 +92,7 @@ export default function Cadastro() {
         .from('members')
         .insert({
           full_name: formData.fullName,
-          birth_date: formData.birthDate?.toISOString().split('T')[0],
+          birth_date: birthDateToSubmit?.toISOString().split('T')[0],
           civil_status: formData.civilStatus as any,
           gender: formData.gender as any,
           congregation: formData.congregation as any,
@@ -91,6 +109,7 @@ export default function Cadastro() {
       setFormData({
         fullName: "",
         birthDate: undefined,
+        birthYear: "",
         civilStatus: "",
         gender: "",
         congregation: "",
@@ -150,36 +169,64 @@ export default function Cadastro() {
 
                 <div className="space-y-2">
                   <Label htmlFor="birthDate">Data de Nascimento *</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant={"outline"}
-                        className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !formData.birthDate && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {formData.birthDate ? (
-                          format(formData.birthDate, "dd/MM/yyyy", { locale: ptBR })
-                        ) : (
-                          <span>Selecione a data</span>
-                        )}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={formData.birthDate}
-                        onSelect={(date) => setFormData({ ...formData, birthDate: date })}
-                        disabled={(date) =>
-                          date > new Date() || date < new Date("1900-01-01")
-                        }
-                        initialFocus
-                        className={cn("p-3 pointer-events-auto")}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {/* Campo de ano simplificado */}
+                    <div className="space-y-2">
+                      <Label htmlFor="birthYear" className="text-sm text-muted-foreground">Apenas o ano (mais rápido)</Label>
+                      <Input
+                        id="birthYear"
+                        type="number"
+                        min="1900"
+                        max={new Date().getFullYear()}
+                        value={formData.birthYear}
+                        onChange={(e) => {
+                          setFormData({ ...formData, birthYear: e.target.value, birthDate: undefined });
+                        }}
+                        placeholder="Ex: 1990"
+                        className="text-center"
                       />
-                    </PopoverContent>
-                  </Popover>
+                    </div>
+                    
+                    {/* Calendário completo */}
+                    <div className="space-y-2">
+                      <Label className="text-sm text-muted-foreground">Ou data completa</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant={"outline"}
+                            className={cn(
+                              "w-full justify-start text-left font-normal",
+                              !formData.birthDate && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {formData.birthDate ? (
+                              format(formData.birthDate, "dd/MM/yyyy", { locale: ptBR })
+                            ) : (
+                              <span>Selecionar</span>
+                            )}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={formData.birthDate}
+                            onSelect={(date) => setFormData({ ...formData, birthDate: date, birthYear: "" })}
+                            disabled={(date) =>
+                              date > new Date() || date < new Date("1900-01-01")
+                            }
+                            initialFocus
+                            className={cn("p-3 pointer-events-auto")}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {formData.birthYear && !formData.birthDate && "✓ Ano selecionado"}
+                    {formData.birthDate && "✓ Data completa selecionada"}
+                    {!formData.birthYear && !formData.birthDate && "Digite apenas o ano para maior rapidez"}
+                  </p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
