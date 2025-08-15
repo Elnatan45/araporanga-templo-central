@@ -102,7 +102,7 @@ export default function Avisos() {
                         <img 
                           src={post.image_url} 
                           alt={post.title}
-                          className="w-full h-64 object-cover rounded-lg shadow-[var(--shadow-card)]"
+                          className="w-full max-h-96 object-contain rounded-lg shadow-[var(--shadow-card)] bg-muted/20"
                         />
                       </div>
                     )}

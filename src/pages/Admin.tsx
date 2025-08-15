@@ -505,6 +505,31 @@ export default function Admin() {
     }
   };
 
+  const handleDeleteMember = async (memberId: string) => {
+    try {
+      const { error } = await supabase
+        .from('members')
+        .delete()
+        .eq('id', memberId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Membro removido!",
+        description: "O cadastro do membro foi removido com sucesso.",
+      });
+
+      fetchMembers();
+    } catch (error) {
+      console.error('Erro ao remover membro:', error);
+      toast({
+        title: "Erro",
+        description: "Ocorreu um erro ao alterar a configuração. Tente novamente.",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen">
@@ -635,35 +660,46 @@ export default function Admin() {
                   ) : (
                     <div className="overflow-x-auto">
                       <Table>
-                         <TableHeader>
-                           <TableRow>
-                             <TableHead>Nome</TableHead>
-                             <TableHead>Data de Nascimento</TableHead>
-                             <TableHead>Gênero</TableHead>
-                             <TableHead>Estado Civil</TableHead>
-                             <TableHead>Congregação</TableHead>
-                             <TableHead>Data de Cadastro</TableHead>
-                           </TableRow>
-                         </TableHeader>
-                        <TableBody>
-                           {members.map((member) => (
-                             <TableRow key={member.id}>
-                               <TableCell className="font-medium">{member.full_name}</TableCell>
-                               <TableCell>
-                                 {member.birth_date 
-                                   ? format(new Date(member.birth_date), "dd/MM/yyyy", { locale: ptBR })
-                                   : "Não informado"
-                                 }
-                               </TableCell>
-                               <TableCell>{genderLabels[member.gender as keyof typeof genderLabels]}</TableCell>
-                               <TableCell>{civilStatusLabels[member.civil_status as keyof typeof civilStatusLabels]}</TableCell>
-                               <TableCell>{congregationLabels[member.congregation as keyof typeof congregationLabels]}</TableCell>
-                               <TableCell>
-                                 {format(new Date(member.created_at), "dd/MM/yyyy", { locale: ptBR })}
-                               </TableCell>
-                             </TableRow>
-                           ))}
-                        </TableBody>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Nome</TableHead>
+                              <TableHead>Data de Nascimento</TableHead>
+                              <TableHead>Gênero</TableHead>
+                              <TableHead>Estado Civil</TableHead>
+                              <TableHead>Congregação</TableHead>
+                              <TableHead>Data de Cadastro</TableHead>
+                              <TableHead>Ações</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                         <TableBody>
+                            {members.map((member) => (
+                              <TableRow key={member.id}>
+                                <TableCell className="font-medium">{member.full_name}</TableCell>
+                                <TableCell>
+                                  {member.birth_date 
+                                    ? format(new Date(member.birth_date), "dd/MM/yyyy", { locale: ptBR })
+                                    : "Não informado"
+                                  }
+                                </TableCell>
+                                <TableCell>{genderLabels[member.gender as keyof typeof genderLabels]}</TableCell>
+                                <TableCell>{civilStatusLabels[member.civil_status as keyof typeof civilStatusLabels]}</TableCell>
+                                <TableCell>{congregationLabels[member.congregation as keyof typeof congregationLabels]}</TableCell>
+                                <TableCell>
+                                  {format(new Date(member.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                                </TableCell>
+                                <TableCell>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleDeleteMember(member.id)}
+                                    className="text-destructive hover:text-destructive"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                         </TableBody>
                       </Table>
                     </div>
                   )}
