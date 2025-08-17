@@ -12,7 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Shield, Users, MessageSquare, Plus, Clock, Edit, Trash2 } from "lucide-react";
+import { Shield, Users, MessageSquare, Plus, Clock, Edit, Trash2, Image, Star } from "lucide-react";
 import { User, Session } from '@supabase/supabase-js';
 
 interface Member {
@@ -67,6 +67,14 @@ interface LectureRegistration {
   created_at: string;
 }
 
+interface ChurchImage {
+  id: string;
+  name: string;
+  image_url: string;
+  is_hero_image: boolean;
+  created_at: string;
+}
+
 const congregationLabels = {
   sede_araporanga: "Sede Araporanga",
   congregacao_boa_vista: "Congregação da Boa Vista",
@@ -95,7 +103,9 @@ export default function Admin() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [services, setServices] = useState<ServiceSchedule[]>([]);
   const [lectureRegistrations, setLectureRegistrations] = useState<LectureRegistration[]>([]);
+  const [churchImages, setChurchImages] = useState<ChurchImage[]>([]);
   const [lectureEnabled, setLectureEnabled] = useState(true);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [postForm, setPostForm] = useState<PostForm>({
     title: "",
     content: "",
@@ -122,6 +132,7 @@ export default function Admin() {
       fetchServices();
       fetchLectureRegistrations();
       fetchLectureConfig();
+      fetchChurchImages();
     }
   }, [isAuthenticated]);
 
@@ -530,6 +541,123 @@ export default function Admin() {
     }
   };
 
+  const fetchChurchImages = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('church_images')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setChurchImages(data || []);
+    } catch (error) {
+      console.error('Erro ao carregar imagens:', error);
+    }
+  };
+
+  const handleImageUpload = async (file: File, name: string) => {
+    setUploadingImage(true);
+    
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random()}.${fileExt}`;
+      const filePath = `church-images/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('church-images')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage
+        .from('church-images')
+        .getPublicUrl(filePath);
+
+      const { error } = await supabase
+        .from('church_images')
+        .insert({
+          name,
+          image_url: data.publicUrl,
+          is_hero_image: false,
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Imagem enviada!",
+        description: "A imagem foi adicionada com sucesso.",
+      });
+
+      fetchChurchImages();
+    } catch (error) {
+      console.error('Erro ao enviar imagem:', error);
+      toast({
+        title: "Erro ao enviar",
+        description: "Ocorreu um erro ao enviar a imagem. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const handleSetHeroImage = async (imageId: string) => {
+    try {
+      // Remove hero status from all images
+      await supabase
+        .from('church_images')
+        .update({ is_hero_image: false })
+        .neq('id', '00000000-0000-0000-0000-000000000000');
+
+      // Set new hero image
+      const { error } = await supabase
+        .from('church_images')
+        .update({ is_hero_image: true })
+        .eq('id', imageId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Imagem principal definida!",
+        description: "A imagem da tela inicial foi atualizada.",
+      });
+
+      fetchChurchImages();
+    } catch (error) {
+      console.error('Erro ao definir imagem principal:', error);
+      toast({
+        title: "Erro",
+        description: "Ocorreu um erro ao definir a imagem principal.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteImage = async (imageId: string) => {
+    try {
+      const { error } = await supabase
+        .from('church_images')
+        .delete()
+        .eq('id', imageId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Imagem removida!",
+        description: "A imagem foi removida com sucesso.",
+      });
+
+      fetchChurchImages();
+    } catch (error) {
+      console.error('Erro ao remover imagem:', error);
+      toast({
+        title: "Erro ao remover",
+        description: "Ocorreu um erro ao remover a imagem. Tente novamente.",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen">
@@ -623,7 +751,7 @@ export default function Admin() {
       <section className="py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <Tabs defaultValue="members" className="space-y-8">
-            <TabsList className="grid w-full grid-cols-5">
+            <TabsList className="grid w-full grid-cols-6">
               <TabsTrigger value="members" className="flex items-center gap-2">
                 <Users className="h-4 w-4" />
                 Membros
@@ -639,6 +767,10 @@ export default function Admin() {
               <TabsTrigger value="lecture" className="flex items-center gap-2">
                 <Users className="h-4 w-4" />
                 Palestra
+              </TabsTrigger>
+              <TabsTrigger value="images" className="flex items-center gap-2">
+                <Image className="h-4 w-4" />
+                Imagens
               </TabsTrigger>
               <TabsTrigger value="password" className="flex items-center gap-2">
                 <Shield className="h-4 w-4" />
@@ -971,6 +1103,119 @@ export default function Admin() {
                   )}
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            <TabsContent value="images">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Upload Form */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Plus className="h-5 w-5" />
+                      Adicionar Nova Imagem
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <form onSubmit={(e) => {
+                      e.preventDefault();
+                      const formData = new FormData(e.currentTarget);
+                      const file = formData.get('image') as File;
+                      const name = formData.get('name') as string;
+                      if (file && name) {
+                        handleImageUpload(file, name);
+                        e.currentTarget.reset();
+                      }
+                    }} className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="imageName">Nome da Imagem *</Label>
+                        <Input
+                          id="imageName"
+                          name="name"
+                          placeholder="ex: Fachada da Igreja, Interior..."
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="imageFile">Arquivo da Imagem *</Label>
+                        <Input
+                          id="imageFile"
+                          name="image"
+                          type="file"
+                          accept="image/*"
+                          required
+                        />
+                      </div>
+                      <Button type="submit" disabled={uploadingImage} variant="hero" className="w-full">
+                        {uploadingImage ? "Enviando..." : "Adicionar Imagem"}
+                      </Button>
+                    </form>
+                  </CardContent>
+                </Card>
+
+                {/* Images Gallery */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Imagens da Igreja ({churchImages.length})</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {churchImages.length === 0 ? (
+                      <div className="text-center py-8">
+                        <Image className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                        <p className="text-muted-foreground">Nenhuma imagem adicionada ainda.</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4 max-h-96 overflow-y-auto">
+                        {churchImages.map((image) => (
+                          <div key={image.id} className="border rounded-lg p-4">
+                            <div className="flex justify-between items-start gap-4">
+                              <div className="flex gap-4 flex-1">
+                                <img 
+                                  src={image.image_url} 
+                                  alt={image.name}
+                                  className="w-16 h-16 object-cover rounded-lg"
+                                />
+                                <div className="flex-1">
+                                  <h3 className="font-semibold text-primary">{image.name}</h3>
+                                  <p className="text-sm text-muted-foreground">
+                                    {format(new Date(image.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                                  </p>
+                                  {image.is_hero_image && (
+                                    <span className="inline-flex items-center gap-1 text-xs bg-church-gold-light text-white px-2 py-1 rounded-full mt-1">
+                                      <Star className="h-3 w-3" />
+                                      Imagem Principal
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="flex gap-2">
+                                {!image.is_hero_image && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleSetHeroImage(image.id)}
+                                    title="Definir como imagem principal"
+                                  >
+                                    <Star className="h-4 w-4" />
+                                  </Button>
+                                )}
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleDeleteImage(image.id)}
+                                  className="text-destructive hover:text-destructive"
+                                  title="Remover imagem"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
             </TabsContent>
 
             <TabsContent value="password">

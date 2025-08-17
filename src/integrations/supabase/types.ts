@@ -38,6 +38,33 @@ export type Database = {
         }
         Relationships: []
       }
+      church_images: {
+        Row: {
+          created_at: string
+          id: string
+          image_url: string
+          is_hero_image: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          image_url: string
+          is_hero_image?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          image_url?: string
+          is_hero_image?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       lecture_registrations: {
         Row: {
           created_at: string

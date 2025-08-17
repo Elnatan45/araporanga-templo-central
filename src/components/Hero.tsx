@@ -1,14 +1,43 @@
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import heroImage from "@/assets/church-hero.jpg";
 
 export function Hero() {
+  const [currentHeroImage, setCurrentHeroImage] = useState(heroImage);
+
+  useEffect(() => {
+    fetchHeroImage();
+  }, []);
+
+  const fetchHeroImage = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('church_images')
+        .select('image_url')
+        .eq('is_hero_image', true)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('Erro ao carregar imagem:', error);
+        return;
+      }
+
+      if (data?.image_url) {
+        setCurrentHeroImage(data.image_url);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar imagem:', error);
+    }
+  };
+
   return (
     <section className="relative min-h-[80vh] flex items-center justify-center overflow-hidden">
       {/* Background Image with Overlay */}
       <div 
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: `url(${heroImage})` }}
+        style={{ backgroundImage: `url(${currentHeroImage})` }}
       >
         <div className="absolute inset-0 bg-gradient-to-r from-primary/80 to-church-blue-medium/70" />
       </div>
