@@ -7,6 +7,7 @@ interface ServiceSchedule {
   service_name: string;
   service_time: string;
   sort_order: number;
+  leader: string | null;
 }
 
 export function ServiceSchedules() {
@@ -48,14 +49,21 @@ export function ServiceSchedules() {
   }, {} as Record<string, ServiceSchedule[]>);
 
   return (
-    <div className="space-y-2 text-sm text-white/80">
+    <div className="space-y-4">
       {Object.entries(groupedSchedules).map(([day, daySchedules]) => (
-        <div key={day}>
-          <span className="font-medium">{day}:</span>
-          <div className="ml-2">
+        <div key={day} className="bg-white/50 backdrop-blur-sm rounded-lg p-4 border border-white/60">
+          <h3 className="font-bold text-primary text-lg mb-3">{day}</h3>
+          <div className="space-y-2">
             {daySchedules.map((schedule) => (
-              <div key={schedule.id}>
-                {schedule.service_name} - {schedule.service_time}
+              <div key={schedule.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                <div className="font-medium text-primary">
+                  {schedule.service_name} - {schedule.service_time}
+                </div>
+                {schedule.leader && (
+                  <div className="text-sm text-muted-foreground">
+                    Dirigente: {schedule.leader}
+                  </div>
+                )}
               </div>
             ))}
           </div>

@@ -2,10 +2,10 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import heroImage from "@/assets/church-hero.jpg";
 
 export function Hero() {
-  const [currentHeroImage, setCurrentHeroImage] = useState(heroImage);
+  const [currentHeroImage, setCurrentHeroImage] = useState<string | null>(null);
+  const [imageLoading, setImageLoading] = useState(true);
 
   useEffect(() => {
     fetchHeroImage();
@@ -13,6 +13,7 @@ export function Hero() {
 
   const fetchHeroImage = async () => {
     try {
+      setImageLoading(true);
       const { data, error } = await supabase
         .from('church_images')
         .select('image_url')
@@ -21,6 +22,7 @@ export function Hero() {
 
       if (error && error.code !== 'PGRST116') {
         console.error('Erro ao carregar imagem:', error);
+        setImageLoading(false);
         return;
       }
 
@@ -29,18 +31,27 @@ export function Hero() {
       }
     } catch (error) {
       console.error('Erro ao carregar imagem:', error);
+    } finally {
+      setImageLoading(false);
     }
   };
 
   return (
     <section className="relative min-h-[80vh] flex items-center justify-center overflow-hidden">
       {/* Background Image with Overlay */}
-      <div 
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: `url(${currentHeroImage})` }}
-      >
-        <div className="absolute inset-0 bg-gradient-to-r from-primary/80 to-church-blue-medium/70" />
-      </div>
+      {!imageLoading && currentHeroImage && (
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-opacity duration-500"
+          style={{ backgroundImage: `url(${currentHeroImage})` }}
+        >
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/80 to-church-blue-medium/70" />
+        </div>
+      )}
+      
+      {/* Fallback gradient background when no image */}
+      {(!currentHeroImage || imageLoading) && (
+        <div className="absolute inset-0 bg-gradient-to-br from-primary via-church-blue-medium to-church-blue-deep" />
+      )}
 
       {/* Content */}
       <div className="relative z-10 text-center text-white px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto">

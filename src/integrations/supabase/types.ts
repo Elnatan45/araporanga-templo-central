@@ -203,6 +203,7 @@ export type Database = {
           day_of_week: string
           id: string
           is_active: boolean
+          leader: string | null
           service_name: string
           service_time: string
           sort_order: number
@@ -213,6 +214,7 @@ export type Database = {
           day_of_week: string
           id?: string
           is_active?: boolean
+          leader?: string | null
           service_name: string
           service_time: string
           sort_order?: number
@@ -223,6 +225,7 @@ export type Database = {
           day_of_week?: string
           id?: string
           is_active?: boolean
+          leader?: string | null
           service_name?: string
           service_time?: string
           sort_order?: number

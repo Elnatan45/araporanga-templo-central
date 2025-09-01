@@ -46,12 +46,14 @@ interface ServiceSchedule {
   service_time: string;
   is_active: boolean;
   sort_order: number;
+  leader: string | null;
 }
 
 interface ServiceForm {
   day_of_week: string;
   service_name: string;
   service_time: string;
+  leader: string;
 }
 
 interface LectureRegistration {
@@ -115,6 +117,7 @@ export default function Admin() {
     day_of_week: "",
     service_name: "",
     service_time: "",
+    leader: "",
   });
   const [editingService, setEditingService] = useState<ServiceSchedule | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -329,6 +332,7 @@ export default function Admin() {
           day_of_week: serviceForm.day_of_week,
           service_name: serviceForm.service_name,
           service_time: serviceForm.service_time,
+          leader: serviceForm.leader || null,
           sort_order: services.length + 1,
         });
 
@@ -339,7 +343,7 @@ export default function Admin() {
         description: "O horário de culto foi criado com sucesso.",
       });
 
-      setServiceForm({ day_of_week: "", service_name: "", service_time: "" });
+      setServiceForm({ day_of_week: "", service_name: "", service_time: "", leader: "" });
       fetchServices();
     } catch (error) {
       console.error('Erro ao criar horário:', error);
@@ -367,6 +371,7 @@ export default function Admin() {
           day_of_week: serviceForm.day_of_week,
           service_name: serviceForm.service_name,
           service_time: serviceForm.service_time,
+          leader: serviceForm.leader || null,
         })
         .eq('id', editingService.id);
 
@@ -377,7 +382,7 @@ export default function Admin() {
         description: "O horário de culto foi atualizado com sucesso.",
       });
 
-      setServiceForm({ day_of_week: "", service_name: "", service_time: "" });
+      setServiceForm({ day_of_week: "", service_name: "", service_time: "", leader: "" });
       setEditingService(null);
       fetchServices();
     } catch (error) {
@@ -398,6 +403,7 @@ export default function Admin() {
       day_of_week: service.day_of_week,
       service_name: service.service_name,
       service_time: service.service_time,
+      leader: service.leader || "",
     });
   };
 
@@ -428,7 +434,7 @@ export default function Admin() {
 
   const cancelEdit = () => {
     setEditingService(null);
-    setServiceForm({ day_of_week: "", service_name: "", service_time: "" });
+    setServiceForm({ day_of_week: "", service_name: "", service_time: "", leader: "" });
   };
 
   const fetchLectureRegistrations = async () => {
@@ -966,6 +972,15 @@ export default function Admin() {
                           required
                         />
                       </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="serviceLeader">Dirigente</Label>
+                        <Input
+                          id="serviceLeader"
+                          value={serviceForm.leader}
+                          onChange={(e) => setServiceForm({ ...serviceForm, leader: e.target.value })}
+                          placeholder="ex: Pastor João, Pr. Maria..."
+                        />
+                      </div>
                       <div className="flex gap-2">
                         <Button type="submit" disabled={isSubmitting} variant="hero" className="flex-1">
                           {isSubmitting ? "Salvando..." : (editingService ? "Atualizar" : "Adicionar")}
@@ -998,6 +1013,9 @@ export default function Admin() {
                             <div>
                               <h3 className="font-semibold text-primary">{service.day_of_week}</h3>
                               <p className="text-sm text-muted-foreground">{service.service_name} - {service.service_time}</p>
+                              {service.leader && (
+                                <p className="text-xs text-muted-foreground">Dirigente: {service.leader}</p>
+                              )}
                             </div>
                             <div className="flex gap-2">
                               <Button
