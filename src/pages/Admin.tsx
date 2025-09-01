@@ -12,8 +12,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Shield, Users, MessageSquare, Plus, Clock, Edit, Trash2, Image, Star } from "lucide-react";
-import { User, Session } from '@supabase/supabase-js';
+import { Shield, Users, MessageSquare, Plus, Clock, Edit, Trash2, Image, Star, User } from "lucide-react";
+import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 
 interface Member {
   id: string;
@@ -77,6 +77,19 @@ interface ChurchImage {
   created_at: string;
 }
 
+interface PastorInfo {
+  id: string;
+  name: string;
+  image_url: string | null;
+  is_active: boolean;
+  created_at: string;
+}
+
+interface PastorForm {
+  name: string;
+  imageFile: File | null;
+}
+
 const congregationLabels = {
   sede_araporanga: "Sede Araporanga",
   congregacao_boa_vista: "Congregação da Boa Vista",
@@ -106,6 +119,7 @@ export default function Admin() {
   const [services, setServices] = useState<ServiceSchedule[]>([]);
   const [lectureRegistrations, setLectureRegistrations] = useState<LectureRegistration[]>([]);
   const [churchImages, setChurchImages] = useState<ChurchImage[]>([]);
+  const [pastorInfo, setPastorInfo] = useState<PastorInfo | null>(null);
   const [lectureEnabled, setLectureEnabled] = useState(true);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [postForm, setPostForm] = useState<PostForm>({
@@ -118,6 +132,10 @@ export default function Admin() {
     service_name: "",
     service_time: "",
     leader: "",
+  });
+  const [pastorForm, setPastorForm] = useState<PastorForm>({
+    name: "",
+    imageFile: null,
   });
   const [editingService, setEditingService] = useState<ServiceSchedule | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -136,6 +154,7 @@ export default function Admin() {
       fetchLectureRegistrations();
       fetchLectureConfig();
       fetchChurchImages();
+      fetchPastorInfo();
     }
   }, [isAuthenticated]);
 
@@ -561,6 +580,27 @@ export default function Admin() {
     }
   };
 
+  const fetchPastorInfo = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('pastor_info')
+        .select('*')
+        .eq('is_active', true)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('Erro ao carregar informações do pastor:', error);
+        return;
+      }
+
+      if (data) {
+        setPastorInfo(data);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar informações do pastor:', error);
+    }
+  };
+
   const handleImageUpload = async (file: File, name: string) => {
     setUploadingImage(true);
     
@@ -757,7 +797,7 @@ export default function Admin() {
       <section className="py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <Tabs defaultValue="members" className="space-y-8">
-            <TabsList className="grid w-full grid-cols-6">
+            <TabsList className="grid w-full grid-cols-7">
               <TabsTrigger value="members" className="flex items-center gap-2">
                 <Users className="h-4 w-4" />
                 Membros
@@ -769,6 +809,10 @@ export default function Admin() {
               <TabsTrigger value="services" className="flex items-center gap-2">
                 <Clock className="h-4 w-4" />
                 Horários
+              </TabsTrigger>
+              <TabsTrigger value="pastor" className="flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                Pastor
               </TabsTrigger>
               <TabsTrigger value="lecture" className="flex items-center gap-2">
                 <Users className="h-4 w-4" />
@@ -1036,6 +1080,181 @@ export default function Admin() {
                             </div>
                           </div>
                         ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="pastor">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Pastor Form */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Plus className="h-5 w-5" />
+                      Informações do Pastor Titular
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <form onSubmit={async (e) => {
+                      e.preventDefault();
+                      
+                      if (!pastorForm.name.trim()) {
+                        toast({
+                          title: "Nome obrigatório",
+                          description: "Por favor, insira o nome do pastor.",
+                          variant: "destructive",
+                        });
+                        return;
+                      }
+
+                      setIsSubmitting(true);
+
+                      try {
+                        let imageUrl = null;
+
+                        // Upload image if provided
+                        if (pastorForm.imageFile) {
+                          const fileExt = pastorForm.imageFile.name.split('.').pop();
+                          const fileName = `pastor-${Math.random()}.${fileExt}`;
+                          const filePath = `church-images/${fileName}`;
+
+                          const { error: uploadError } = await supabase.storage
+                            .from('church-images')
+                            .upload(filePath, pastorForm.imageFile);
+
+                          if (uploadError) throw uploadError;
+
+                          const { data } = supabase.storage
+                            .from('church-images')
+                            .getPublicUrl(filePath);
+
+                          imageUrl = data.publicUrl;
+                        }
+
+                        // Deactivate previous pastor info
+                        await supabase
+                          .from('pastor_info')
+                          .update({ is_active: false })
+                          .neq('id', '00000000-0000-0000-0000-000000000000');
+
+                        // Insert new pastor info
+                        const { error } = await supabase
+                          .from('pastor_info')
+                          .insert({
+                            name: pastorForm.name,
+                            image_url: imageUrl || (pastorInfo?.image_url || null),
+                            is_active: true,
+                          });
+
+                        if (error) throw error;
+
+                        toast({
+                          title: "Informações salvas!",
+                          description: "As informações do pastor foram atualizadas com sucesso.",
+                        });
+
+                        setPastorForm({ name: "", imageFile: null });
+                        fetchPastorInfo();
+                      } catch (error) {
+                        console.error('Erro ao salvar informações do pastor:', error);
+                        toast({
+                          title: "Erro ao salvar",
+                          description: "Ocorreu um erro ao salvar as informações. Tente novamente.",
+                          variant: "destructive",
+                        });
+                      } finally {
+                        setIsSubmitting(false);
+                      }
+                    }} className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="pastorName">Nome do Pastor *</Label>
+                        <Input
+                          id="pastorName"
+                          value={pastorForm.name}
+                          onChange={(e) => setPastorForm({ ...pastorForm, name: e.target.value })}
+                          placeholder="ex: Pr. João Silva"
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="pastorImage">Foto do Pastor</Label>
+                        <Input
+                          id="pastorImage"
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0] || null;
+                            setPastorForm({ ...pastorForm, imageFile: file });
+                          }}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Selecione uma foto do pastor (opcional)
+                        </p>
+                      </div>
+                      <Button type="submit" disabled={isSubmitting} variant="hero" className="w-full">
+                        {isSubmitting ? "Salvando..." : "Salvar Informações"}
+                      </Button>
+                    </form>
+                  </CardContent>
+                </Card>
+
+                {/* Current Pastor Info */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Pastor Atual</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {pastorInfo ? (
+                      <div className="text-center space-y-4">
+                        {pastorInfo.image_url ? (
+                          <div className="w-32 h-32 mx-auto rounded-full overflow-hidden border-4 border-primary/20">
+                            <img 
+                              src={pastorInfo.image_url} 
+                              alt={`Foto do ${pastorInfo.name}`}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        ) : (
+                          <div className="w-32 h-32 mx-auto rounded-full bg-gradient-to-br from-primary to-church-blue-medium flex items-center justify-center border-4 border-primary/20">
+                            <Users className="w-16 h-16 text-white" />
+                          </div>
+                        )}
+                        
+                        <div>
+                          <h3 className="text-xl font-bold text-primary mb-2">
+                            {pastorInfo.name}
+                          </h3>
+                          <p className="text-muted-foreground">
+                            Pastor Titular
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-2">
+                            Atualizado em {format(new Date(pastorInfo.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                          </p>
+                        </div>
+
+                        <Button
+                          onClick={() => {
+                            setPastorForm({ 
+                              name: pastorInfo.name, 
+                              imageFile: null 
+                            });
+                          }}
+                          variant="outline"
+                          className="w-full"
+                        >
+                          <Edit className="h-4 w-4 mr-2" />
+                          Editar Informações
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                        <p className="text-muted-foreground">
+                          Nenhuma informação do pastor cadastrada ainda.
+                        </p>
                       </div>
                     )}
                   </CardContent>

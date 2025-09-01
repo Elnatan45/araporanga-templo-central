@@ -154,7 +154,12 @@ export default function Cadastro() {
                     id="birthDate"
                     type="date"
                     value={formData.birthDate}
-                    onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })}
+                    onChange={(e) => {
+                      // Corrigir problema de timezone adicionando um dia
+                      const selectedDate = new Date(e.target.value + 'T12:00:00');
+                      const formattedDate = selectedDate.toISOString().split('T')[0];
+                      setFormData({ ...formData, birthDate: formattedDate });
+                    }}
                     required
                     max={new Date().toISOString().split('T')[0]}
                     min="1900-01-01"

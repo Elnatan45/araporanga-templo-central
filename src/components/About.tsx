@@ -36,6 +36,7 @@ export function About() {
           </div>
         </div>
 
+        {/* Congregações */}
         <div className="bg-gradient-to-r from-primary/5 to-church-blue-light/20 rounded-2xl p-8 md:p-12">
           <div className="text-center mb-12">
             <h3 className="text-2xl md:text-3xl font-bold text-primary mb-4">
