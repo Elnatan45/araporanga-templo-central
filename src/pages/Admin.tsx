@@ -859,7 +859,7 @@ export default function Admin() {
                                 <TableCell className="font-medium">{member.full_name}</TableCell>
                                 <TableCell>
                                   {member.birth_date 
-                                    ? format(new Date(member.birth_date), "dd/MM/yyyy", { locale: ptBR })
+                                    ? format(new Date(member.birth_date + 'T12:00:00'), "dd/MM/yyyy", { locale: ptBR })
                                     : "Não informado"
                                   }
                                 </TableCell>
