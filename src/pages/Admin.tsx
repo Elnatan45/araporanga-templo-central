@@ -7,12 +7,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Shield, Users, MessageSquare, Plus, Clock, Edit, Trash2, Image, Star, User } from "lucide-react";
+import { Shield, Users, MessageSquare, Plus, Clock, Edit, Trash2, Image, Star, User, BarChart3 } from "lucide-react";
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 
 interface Member {
@@ -137,6 +138,8 @@ export default function Admin() {
     name: "",
     imageFile: null,
   });
+  const [selectedCongregation, setSelectedCongregation] = useState<string>("all");
+  const [filteredMembers, setFilteredMembers] = useState<Member[]>([]);
   const [editingService, setEditingService] = useState<ServiceSchedule | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loginData, setLoginData] = useState({ username: "", password: "" });
@@ -157,6 +160,83 @@ export default function Admin() {
       fetchPastorInfo();
     }
   }, [isAuthenticated]);
+
+  // Filter members by congregation
+  useEffect(() => {
+    if (selectedCongregation === "all") {
+      setFilteredMembers(members);
+    } else {
+      setFilteredMembers(members.filter(member => member.congregation === selectedCongregation));
+    }
+  }, [members, selectedCongregation]);
+
+  // Calculate statistics
+  const getStatistics = () => {
+    const stats = {
+      total: filteredMembers.length,
+      male: filteredMembers.filter(m => m.gender === 'masculino').length,
+      female: filteredMembers.filter(m => m.gender === 'feminino').length,
+      averageAge: 0,
+      ageGroups: {
+        '0-17': 0,
+        '18-35': 0,
+        '36-60': 0,
+        '61+': 0
+      }
+    };
+
+    if (filteredMembers.length > 0) {
+      const ages = filteredMembers
+        .filter(m => m.birth_date)
+        .map(m => {
+          const today = new Date();
+          const birthDate = new Date(m.birth_date + 'T12:00:00');
+          return today.getFullYear() - birthDate.getFullYear();
+        });
+
+      if (ages.length > 0) {
+        stats.averageAge = Math.round(ages.reduce((sum, age) => sum + age, 0) / ages.length);
+        
+        ages.forEach(age => {
+          if (age <= 17) stats.ageGroups['0-17']++;
+          else if (age <= 35) stats.ageGroups['18-35']++;
+          else if (age <= 60) stats.ageGroups['36-60']++;
+          else stats.ageGroups['61+']++;
+        });
+      }
+    }
+
+    return stats;
+  };
+
+  const congregationStats = Object.keys(congregationLabels).map(key => {
+    const congregationMembers = members.filter(m => m.congregation === key);
+    const male = congregationMembers.filter(m => m.gender === 'masculino').length;
+    const female = congregationMembers.filter(m => m.gender === 'feminino').length;
+    
+    const ages = congregationMembers
+      .filter(m => m.birth_date)
+      .map(m => {
+        const today = new Date();
+        const birthDate = new Date(m.birth_date + 'T12:00:00');
+        return today.getFullYear() - birthDate.getFullYear();
+      });
+    
+    const averageAge = ages.length > 0 
+      ? Math.round(ages.reduce((sum, age) => sum + age, 0) / ages.length)
+      : 0;
+
+    return {
+      congregation: key,
+      name: congregationLabels[key as keyof typeof congregationLabels],
+      total: congregationMembers.length,
+      male,
+      female,
+      averageAge
+    };
+  });
+
+  const stats = getStatistics();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -826,7 +906,7 @@ export default function Admin() {
       <section className="py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <Tabs defaultValue="members" className="space-y-8">
-            <TabsList className="grid w-full grid-cols-7">
+            <TabsList className="grid w-full grid-cols-8">
               <TabsTrigger value="members" className="flex items-center gap-2">
                 <Users className="h-4 w-4" />
                 Membros
@@ -850,6 +930,10 @@ export default function Admin() {
               <TabsTrigger value="images" className="flex items-center gap-2">
                 <Image className="h-4 w-4" />
                 Imagens
+              </TabsTrigger>
+              <TabsTrigger value="reports" className="flex items-center gap-2">
+                <BarChart3 className="h-4 w-4" />
+                Relatórios
               </TabsTrigger>
               <TabsTrigger value="password" className="flex items-center gap-2">
                 <Shield className="h-4 w-4" />
@@ -1491,6 +1575,190 @@ export default function Admin() {
                     )}
                   </CardContent>
                 </Card>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="reports">
+              <div className="space-y-8">
+                {/* Filter by Congregation */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <BarChart3 className="h-5 w-5" />
+                      Filtros de Relatório
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="congregation-filter">Selecionar Congregação</Label>
+                        <Select value={selectedCongregation} onValueChange={setSelectedCongregation}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione uma congregação" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Todas as Congregações</SelectItem>
+                            {Object.entries(congregationLabels).map(([key, label]) => (
+                              <SelectItem key={key} value={key}>{label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* General Statistics */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="flex items-center gap-2">
+                        <Users className="h-8 w-8 text-primary" />
+                        <div>
+                          <p className="text-2xl font-bold">{stats.total}</p>
+                          <p className="text-sm text-muted-foreground">Total de Membros</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="flex items-center gap-2">
+                        <User className="h-8 w-8 text-blue-500" />
+                        <div>
+                          <p className="text-2xl font-bold">{stats.male}</p>
+                          <p className="text-sm text-muted-foreground">Homens</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="flex items-center gap-2">
+                        <User className="h-8 w-8 text-pink-500" />
+                        <div>
+                          <p className="text-2xl font-bold">{stats.female}</p>
+                          <p className="text-sm text-muted-foreground">Mulheres</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="flex items-center gap-2">
+                        <BarChart3 className="h-8 w-8 text-green-500" />
+                        <div>
+                          <p className="text-2xl font-bold">{stats.averageAge}</p>
+                          <p className="text-sm text-muted-foreground">Idade Média</p>
+                        </div>
+                      </div>  
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Age Groups */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Distribuição por Faixa Etária</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {Object.entries(stats.ageGroups).map(([range, count]) => (
+                        <div key={range} className="text-center p-4 border rounded-lg">
+                          <p className="text-2xl font-bold text-primary">{count}</p>
+                          <p className="text-sm text-muted-foreground">{range} anos</p>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Congregation Statistics */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Estatísticas por Congregação</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Congregação</TableHead>
+                            <TableHead>Total</TableHead>
+                            <TableHead>Homens</TableHead>
+                            <TableHead>Mulheres</TableHead>
+                            <TableHead>Idade Média</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {congregationStats.map((stat) => (
+                            <TableRow key={stat.congregation}>
+                              <TableCell className="font-medium">{stat.name}</TableCell>
+                              <TableCell>{stat.total}</TableCell>
+                              <TableCell>{stat.male}</TableCell>
+                              <TableCell>{stat.female}</TableCell>
+                              <TableCell>{stat.averageAge} anos</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Members List */}
+                {selectedCongregation !== "all" && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>
+                        Membros da {congregationLabels[selectedCongregation as keyof typeof congregationLabels]} ({filteredMembers.length})
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {filteredMembers.length === 0 ? (
+                        <div className="text-center py-8">
+                          <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                          <p className="text-muted-foreground">Nenhum membro encontrado para esta congregação.</p>
+                        </div>
+                      ) : (
+                        <div className="overflow-x-auto">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Nome</TableHead>
+                                <TableHead>Data de Nascimento</TableHead>
+                                <TableHead>Gênero</TableHead>
+                                <TableHead>Estado Civil</TableHead>
+                                <TableHead>Data de Cadastro</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {filteredMembers.map((member) => (
+                                <TableRow key={member.id}>
+                                  <TableCell className="font-medium">{member.full_name}</TableCell>
+                                  <TableCell>
+                                    {member.birth_date 
+                                      ? format(new Date(member.birth_date + 'T12:00:00'), "dd/MM/yyyy", { locale: ptBR })
+                                      : "Não informado"
+                                    }
+                                  </TableCell>
+                                  <TableCell>{genderLabels[member.gender as keyof typeof genderLabels]}</TableCell>
+                                  <TableCell>{civilStatusLabels[member.civil_status as keyof typeof civilStatusLabels]}</TableCell>
+                                  <TableCell>
+                                    {format(new Date(member.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
               </div>
             </TabsContent>
 
