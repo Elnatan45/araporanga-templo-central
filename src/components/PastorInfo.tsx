@@ -62,7 +62,7 @@ export function PastorInfo() {
             Pastor Titular
           </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            Conheça nosso líder espiritual
+            Conheça nosso pastor
           </p>
         </div>
 
