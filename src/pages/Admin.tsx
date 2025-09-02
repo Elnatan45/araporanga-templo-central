@@ -330,6 +330,35 @@ export default function Admin() {
     }
   };
 
+  const handleDeletePost = async (postId: string) => {
+    if (!confirm("Tem certeza que deseja excluir este aviso?")) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('posts')
+        .delete()
+        .eq('id', postId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Aviso excluído!",
+        description: "O aviso foi removido com sucesso.",
+      });
+
+      fetchPosts();
+    } catch (error) {
+      console.error('Erro ao excluir post:', error);
+      toast({
+        title: "Erro ao excluir",
+        description: "Ocorreu um erro ao excluir o aviso. Tente novamente.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleCreateService = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -958,7 +987,17 @@ export default function Admin() {
                       <div className="space-y-4 max-h-96 overflow-y-auto">
                         {posts.map((post) => (
                           <div key={post.id} className="border rounded-lg p-4">
-                            <h3 className="font-semibold text-primary mb-2">{post.title}</h3>
+                            <div className="flex justify-between items-start mb-2">
+                              <h3 className="font-semibold text-primary">{post.title}</h3>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDeletePost(post.id)}
+                                className="text-destructive hover:text-destructive h-8 w-8 p-0"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                             <p className="text-sm text-muted-foreground mb-2">
                               {format(new Date(post.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
                             </p>
