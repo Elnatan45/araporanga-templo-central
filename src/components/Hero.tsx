@@ -42,9 +42,13 @@ export function Hero() {
       {!imageLoading && currentHeroImage && (
         <div 
           className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-opacity duration-500"
-          style={{ backgroundImage: `url(${currentHeroImage})` }}
+          style={{ 
+            backgroundImage: `url(${currentHeroImage})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center center'
+          }}
         >
-          <div className="absolute inset-0 bg-gradient-to-r from-primary/80 to-church-blue-medium/70" />
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/70 to-church-blue-medium/60" />
         </div>
       )}
       
@@ -54,29 +58,21 @@ export function Hero() {
       )}
 
       {/* Content */}
-      <div className="relative z-10 text-center text-white px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto">
-        <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight">
+      <div className="relative z-10 text-center text-white px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto">
+        <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold mb-8 leading-tight">
           Assembleia de Deus
           <span className="block text-church-gold-light">Templo Central</span>
-          <span className="block text-2xl md:text-3xl font-semibold mt-2">Araporanga</span>
+          <span className="block text-3xl md:text-4xl lg:text-5xl font-semibold mt-4">Araporanga</span>
         </h1>
         
 
-        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-          <Button asChild variant="gold" size="xl">
+        <div className="flex flex-col sm:flex-row gap-6 justify-center items-center mt-12">
+          <Button asChild variant="gold" size="xl" className="text-lg px-8 py-4">
             <Link to="/avisos">Ver Avisos</Link>
           </Button>
-          <Button asChild variant="outline" size="xl" className="border-white text-white hover:bg-white hover:text-primary">
+          <Button asChild variant="outline" size="xl" className="border-white text-white hover:bg-white hover:text-primary text-lg px-8 py-4">
             <Link to="/cadastro">Cadastrar-se</Link>
           </Button>
-        </div>
-
-        {/* Stats Section */}
-        <div className="mt-16 flex justify-center">
-          <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 border border-white/20">
-            <h3 className="text-3xl font-bold text-church-gold-light mb-2">6</h3>
-            <p className="text-white/90">Congregações</p>
-          </div>
         </div>
       </div>
     </section>
