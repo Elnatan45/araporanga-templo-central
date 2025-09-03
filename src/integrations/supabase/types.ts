@@ -65,6 +65,42 @@ export type Database = {
         }
         Relationships: []
       }
+      church_info: {
+        Row: {
+          church_description: string
+          church_name: string
+          copyright_text: string
+          created_at: string
+          email: string
+          id: string
+          location: string
+          phone: string
+          updated_at: string
+        }
+        Insert: {
+          church_description?: string
+          church_name?: string
+          copyright_text?: string
+          created_at?: string
+          email?: string
+          id?: string
+          location?: string
+          phone?: string
+          updated_at?: string
+        }
+        Update: {
+          church_description?: string
+          church_name?: string
+          copyright_text?: string
+          created_at?: string
+          email?: string
+          id?: string
+          location?: string
+          phone?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       lecture_registrations: {
         Row: {
           created_at: string

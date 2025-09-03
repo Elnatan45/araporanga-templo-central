@@ -13,8 +13,18 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Shield, Users, MessageSquare, Plus, Clock, Edit, Trash2, Image, Star, User, BarChart3 } from "lucide-react";
+import { Shield, Users, MessageSquare, Plus, Clock, Edit, Trash2, Image, Star, User, BarChart3, Building2 } from "lucide-react";
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
+
+interface ChurchInfo {
+  id: string;
+  church_name: string;
+  church_description: string;
+  location: string;
+  phone: string;
+  email: string;
+  copyright_text: string;
+}
 
 interface Member {
   id: string;
@@ -121,6 +131,7 @@ export default function Admin() {
   const [lectureRegistrations, setLectureRegistrations] = useState<LectureRegistration[]>([]);
   const [churchImages, setChurchImages] = useState<ChurchImage[]>([]);
   const [pastorInfo, setPastorInfo] = useState<PastorInfo | null>(null);
+  const [churchInfo, setChurchInfo] = useState<ChurchInfo | null>(null);
   const [lectureEnabled, setLectureEnabled] = useState(true);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [postForm, setPostForm] = useState<PostForm>({
@@ -158,6 +169,7 @@ export default function Admin() {
       fetchLectureConfig();
       fetchChurchImages();
       fetchPastorInfo();
+      fetchChurchInfo();
     }
   }, [isAuthenticated]);
 
@@ -710,6 +722,65 @@ export default function Admin() {
     }
   };
 
+  const fetchChurchInfo = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('church_info')
+        .select('*')
+        .limit(1)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Erro ao carregar informações da igreja:', error);
+        return;
+      }
+
+      if (data) {
+        setChurchInfo(data);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar informações da igreja:', error);
+    }
+  };
+
+  const handleChurchInfoUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!churchInfo) return;
+
+    setIsSubmitting(true);
+    try {
+      const { error } = await supabase
+        .from('church_info')
+        .update({
+          church_name: churchInfo.church_name,
+          church_description: churchInfo.church_description,
+          location: churchInfo.location,
+          phone: churchInfo.phone,
+          email: churchInfo.email,
+          copyright_text: churchInfo.copyright_text,
+        })
+        .eq('id', churchInfo.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Informações salvas!",
+        description: "As informações da igreja foram atualizadas com sucesso.",
+      });
+
+      fetchChurchInfo();
+    } catch (error) {
+      console.error('Erro ao salvar informações da igreja:', error);
+      toast({
+        title: "Erro ao salvar",
+        description: "Ocorreu um erro ao salvar as informações. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleImageUpload = async (file: File, name: string) => {
     setUploadingImage(true);
     
@@ -906,7 +977,7 @@ export default function Admin() {
       <section className="py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <Tabs defaultValue="members" className="space-y-8">
-            <TabsList className="grid w-full grid-cols-8">
+            <TabsList className="grid w-full grid-cols-9">
               <TabsTrigger value="members" className="flex items-center gap-2">
                 <Users className="h-4 w-4" />
                 Membros
@@ -934,6 +1005,10 @@ export default function Admin() {
               <TabsTrigger value="reports" className="flex items-center gap-2">
                 <BarChart3 className="h-4 w-4" />
                 Relatórios
+              </TabsTrigger>
+              <TabsTrigger value="church-info" className="flex items-center gap-2">
+                <Building2 className="h-4 w-4" />
+                Igreja
               </TabsTrigger>
               <TabsTrigger value="password" className="flex items-center gap-2">
                 <Shield className="h-4 w-4" />
@@ -1760,6 +1835,86 @@ export default function Admin() {
                   </Card>
                 )}
               </div>
+            </TabsContent>
+
+            <TabsContent value="church-info">
+              <Card className="max-w-2xl mx-auto">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Building2 className="h-5 w-5" />
+                    Informações da Igreja
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleChurchInfoUpdate} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="church_name">Nome da Igreja *</Label>
+                      <Input
+                        id="church_name"
+                        value={churchInfo?.church_name || ''}
+                        onChange={(e) => setChurchInfo(prev => prev ? { ...prev, church_name: e.target.value } : null)}
+                        placeholder="Ex: AD Templo Central"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="church_description">Descrição *</Label>
+                      <Textarea
+                        id="church_description"
+                        value={churchInfo?.church_description || ''}
+                        onChange={(e) => setChurchInfo(prev => prev ? { ...prev, church_description: e.target.value } : null)}
+                        placeholder="Ex: Assembleia de Deus Templo Central - Araporanga. Uma comunidade de fé, esperança e amor."
+                        required
+                        rows={3}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="location">Localização *</Label>
+                      <Input
+                        id="location"
+                        value={churchInfo?.location || ''}
+                        onChange={(e) => setChurchInfo(prev => prev ? { ...prev, location: e.target.value } : null)}
+                        placeholder="Ex: Araporanga - CE"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="phone">Telefone *</Label>
+                      <Input
+                        id="phone"
+                        value={churchInfo?.phone || ''}
+                        onChange={(e) => setChurchInfo(prev => prev ? { ...prev, phone: e.target.value } : null)}
+                        placeholder="Ex: (85) 99999-9999"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email *</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        value={churchInfo?.email || ''}
+                        onChange={(e) => setChurchInfo(prev => prev ? { ...prev, email: e.target.value } : null)}
+                        placeholder="Ex: contato@igreja.com"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="copyright_text">Texto de Copyright *</Label>
+                      <Input
+                        id="copyright_text"
+                        value={churchInfo?.copyright_text || ''}
+                        onChange={(e) => setChurchInfo(prev => prev ? { ...prev, copyright_text: e.target.value } : null)}
+                        placeholder="Ex: © 2024 Assembleia de Deus Templo Central - Araporanga. Todos os direitos reservados."
+                        required
+                      />
+                    </div>
+                    <Button type="submit" disabled={isSubmitting} variant="hero" className="w-full">
+                      Salvar Informações
+                    </Button>
+                  </form>
+                </CardContent>
+              </Card>
             </TabsContent>
 
             <TabsContent value="password">
