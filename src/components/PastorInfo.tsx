@@ -24,9 +24,11 @@ export function PastorInfo() {
         .from('pastor_info')
         .select('*')
         .eq('is_active', true)
-        .single();
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') {
+      if (error) {
         console.error('Erro ao carregar informações do pastor:', error);
         return;
       }

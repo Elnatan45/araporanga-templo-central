@@ -710,9 +710,11 @@ export default function Admin() {
         .from('pastor_info')
         .select('*')
         .eq('is_active', true)
-        .single();
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') {
+      if (error) {
         console.error('Erro ao carregar informações do pastor:', error);
         return;
       }
@@ -1335,11 +1337,15 @@ export default function Admin() {
                           imageUrl = data.publicUrl;
                         }
 
-                        // Deactivate previous pastor info
-                        await supabase
+                        // Primeiro, desativar todos os registros anteriores
+                        const { error: deactivateError } = await supabase
                           .from('pastor_info')
                           .update({ is_active: false })
-                          .neq('id', '00000000-0000-0000-0000-000000000000');
+                          .eq('is_active', true);
+
+                        if (deactivateError) {
+                          console.error('Erro ao desativar registros anteriores:', deactivateError);
+                        }
 
                         // Insert new pastor info
                         const { error } = await supabase
