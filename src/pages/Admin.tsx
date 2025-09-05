@@ -92,6 +92,7 @@ interface PastorInfo {
   id: string;
   name: string;
   image_url: string | null;
+  image_position: string;
   is_active: boolean;
   created_at: string;
 }
@@ -99,6 +100,7 @@ interface PastorInfo {
 interface PastorForm {
   name: string;
   imageFile: File | null;
+  imagePosition: string;
 }
 
 const congregationLabels = {
@@ -148,6 +150,7 @@ export default function Admin() {
   const [pastorForm, setPastorForm] = useState<PastorForm>({
     name: "",
     imageFile: null,
+    imagePosition: "center center",
   });
   const [selectedCongregation, setSelectedCongregation] = useState<string>("all");
   const [filteredMembers, setFilteredMembers] = useState<Member[]>([]);
@@ -1344,6 +1347,7 @@ export default function Admin() {
                           .insert({
                             name: pastorForm.name,
                             image_url: imageUrl || (pastorInfo?.image_url || null),
+                            image_position: pastorForm.imagePosition,
                             is_active: true,
                           });
 
@@ -1354,7 +1358,7 @@ export default function Admin() {
                           description: "As informações do pastor foram atualizadas com sucesso.",
                         });
 
-                        setPastorForm({ name: "", imageFile: null });
+                        setPastorForm({ name: "", imageFile: null, imagePosition: "center center" });
                         fetchPastorInfo();
                       } catch (error) {
                         console.error('Erro ao salvar informações do pastor:', error);
@@ -1392,6 +1396,31 @@ export default function Admin() {
                           Selecione uma foto do pastor (opcional)
                         </p>
                       </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="imagePosition">Posicionamento da Imagem</Label>
+                        <Select 
+                          value={pastorForm.imagePosition} 
+                          onValueChange={(value) => setPastorForm({ ...pastorForm, imagePosition: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione o posicionamento" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="center center">Centro</SelectItem>
+                            <SelectItem value="top center">Topo Centro</SelectItem>
+                            <SelectItem value="bottom center">Base Centro</SelectItem>
+                            <SelectItem value="center left">Centro Esquerda</SelectItem>
+                            <SelectItem value="center right">Centro Direita</SelectItem>
+                            <SelectItem value="top left">Topo Esquerda</SelectItem>
+                            <SelectItem value="top right">Topo Direita</SelectItem>
+                            <SelectItem value="bottom left">Base Esquerda</SelectItem>
+                            <SelectItem value="bottom right">Base Direita</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <p className="text-xs text-muted-foreground">
+                          Ajuste como a foto será posicionada no círculo
+                        </p>
+                      </div>
                       <Button type="submit" disabled={isSubmitting} variant="hero" className="w-full">
                         {isSubmitting ? "Salvando..." : "Salvar Informações"}
                       </Button>
@@ -1413,6 +1442,7 @@ export default function Admin() {
                               src={pastorInfo.image_url} 
                               alt={`Foto do ${pastorInfo.name}`}
                               className="w-full h-full object-cover"
+                              style={{ objectPosition: pastorInfo.image_position || 'center center' }}
                             />
                           </div>
                         ) : (
@@ -1437,7 +1467,8 @@ export default function Admin() {
                           onClick={() => {
                             setPastorForm({ 
                               name: pastorInfo.name, 
-                              imageFile: null 
+                              imageFile: null,
+                              imagePosition: pastorInfo.image_position || "center center"
                             });
                           }}
                           variant="outline"

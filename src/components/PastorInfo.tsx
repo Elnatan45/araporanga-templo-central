@@ -6,6 +6,7 @@ interface PastorInfo {
   id: string;
   name: string;
   image_url: string | null;
+  image_position: string;
   is_active: boolean;
 }
 
@@ -70,13 +71,14 @@ export function PastorInfo() {
           <div className="bg-gradient-to-r from-primary/5 to-church-blue-light/20 rounded-2xl p-8 md:p-12 text-center">
             <div className="mb-8">
               {pastorInfo.image_url ? (
-                <div className="w-48 h-48 mx-auto rounded-full overflow-hidden border-4 border-white shadow-lg">
-                  <img 
-                    src={pastorInfo.image_url} 
-                    alt={`Foto do ${pastorInfo.name}`}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
+                 <div className="w-48 h-48 mx-auto rounded-full overflow-hidden border-4 border-white shadow-lg">
+                   <img 
+                     src={pastorInfo.image_url} 
+                     alt={`Foto do ${pastorInfo.name}`}
+                     className="w-full h-full object-cover"
+                     style={{ objectPosition: pastorInfo.image_position || 'center center' }}
+                   />
+                 </div>
               ) : (
                 <div className="w-48 h-48 mx-auto rounded-full bg-gradient-to-br from-primary to-church-blue-medium flex items-center justify-center border-4 border-white shadow-lg">
                   <User className="w-24 h-24 text-white" />
