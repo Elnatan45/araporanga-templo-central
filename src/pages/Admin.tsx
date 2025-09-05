@@ -1469,20 +1469,56 @@ export default function Admin() {
                           </p>
                         </div>
 
-                        <Button
-                          onClick={() => {
-                            setPastorForm({ 
-                              name: pastorInfo.name, 
-                              imageFile: null,
-                              imagePosition: pastorInfo.image_position || "center center"
-                            });
-                          }}
-                          variant="outline"
-                          className="w-full"
-                        >
-                          <Edit className="h-4 w-4 mr-2" />
-                          Editar Informações
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button
+                            onClick={() => {
+                              setPastorForm({ 
+                                name: pastorInfo.name, 
+                                imageFile: null,
+                                imagePosition: pastorInfo.image_position || "center center"
+                              });
+                            }}
+                            variant="outline"
+                            className="flex-1"
+                          >
+                            <Edit className="h-4 w-4 mr-2" />
+                            Editar
+                          </Button>
+                          <Button
+                            onClick={async () => {
+                              if (!confirm("Tem certeza que deseja excluir as informações do pastor?")) {
+                                return;
+                              }
+
+                              try {
+                                const { error } = await supabase
+                                  .from('pastor_info')
+                                  .update({ is_active: false })
+                                  .eq('id', pastorInfo.id);
+
+                                if (error) throw error;
+
+                                toast({
+                                  title: "Pastor excluído!",
+                                  description: "As informações do pastor foram removidas com sucesso.",
+                                });
+
+                                fetchPastorInfo();
+                              } catch (error) {
+                                console.error('Erro ao excluir pastor:', error);
+                                toast({
+                                  title: "Erro ao excluir",
+                                  description: "Ocorreu um erro ao excluir as informações. Tente novamente.",
+                                  variant: "destructive",
+                                });
+                              }
+                            }}
+                            variant="destructive"
+                            size="icon"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                     ) : (
                       <div className="text-center py-8">
