@@ -40,14 +40,31 @@ export function Hero() {
     <section className="relative min-h-[80vh] flex items-center justify-center overflow-hidden">
       {/* Background Image with Overlay */}
       {!imageLoading && currentHeroImage && (
-        <div 
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-opacity duration-500"
-          style={{ 
-            backgroundImage: `url(${currentHeroImage})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center center'
-          }}
-        >
+        <div className="absolute inset-0 transition-opacity duration-500">
+          {/* Mobile and tablet - cover background */}
+          <div 
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat lg:hidden"
+            style={{ 
+              backgroundImage: `url(${currentHeroImage})`
+            }}
+          />
+          
+          {/* Desktop - centered image to avoid cropping */}
+          <div 
+            className="hidden lg:block absolute inset-0 bg-contain bg-center bg-no-repeat"
+            style={{ 
+              backgroundImage: `url(${currentHeroImage})`
+            }}
+          />
+          
+          {/* If contain doesn't fill, add a blurred background */}
+          <div 
+            className="hidden lg:block absolute inset-0 bg-cover bg-center bg-no-repeat -z-10 blur-sm opacity-30"
+            style={{ 
+              backgroundImage: `url(${currentHeroImage})`
+            }}
+          />
+          
           <div className="absolute inset-0 bg-gradient-to-r from-primary/70 to-church-blue-medium/60" />
         </div>
       )}
