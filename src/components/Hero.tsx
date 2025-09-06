@@ -49,21 +49,18 @@ export function Hero() {
             }}
           />
           
-          {/* Desktop - centered image to avoid cropping */}
-          <div 
-            className="hidden lg:block absolute inset-0 bg-contain bg-center bg-no-repeat"
-            style={{ 
-              backgroundImage: `url(${currentHeroImage})`
-            }}
-          />
-          
-          {/* If contain doesn't fill, add a blurred background */}
-          <div 
-            className="hidden lg:block absolute inset-0 bg-cover bg-center bg-no-repeat -z-10 blur-sm opacity-30"
-            style={{ 
-              backgroundImage: `url(${currentHeroImage})`
-            }}
-          />
+          {/* Desktop - use img tag for better control */}
+          <div className="hidden lg:block absolute inset-0">
+            <img 
+              src={currentHeroImage}
+              alt="Igreja"
+              className="w-full h-full object-contain"
+              style={{ 
+                minHeight: '100%',
+                backgroundColor: 'rgba(0,0,0,0.1)'
+              }}
+            />
+          </div>
           
           <div className="absolute inset-0 bg-gradient-to-r from-primary/70 to-church-blue-medium/60" />
         </div>
