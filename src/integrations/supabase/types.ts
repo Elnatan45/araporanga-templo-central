@@ -101,6 +101,54 @@ export type Database = {
         }
         Relationships: []
       }
+      lecture_info: {
+        Row: {
+          additional_info: string | null
+          contact_info: string | null
+          created_at: string
+          date_time: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          location: string | null
+          max_participants: number | null
+          price: number | null
+          registration_deadline: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          additional_info?: string | null
+          contact_info?: string | null
+          created_at?: string
+          date_time?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          location?: string | null
+          max_participants?: number | null
+          price?: number | null
+          registration_deadline?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          additional_info?: string | null
+          contact_info?: string | null
+          created_at?: string
+          date_time?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          location?: string | null
+          max_participants?: number | null
+          price?: number | null
+          registration_deadline?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       lecture_registrations: {
         Row: {
           created_at: string

@@ -136,6 +136,18 @@ export default function Admin() {
   const [churchInfo, setChurchInfo] = useState<ChurchInfo | null>(null);
   const [lectureEnabled, setLectureEnabled] = useState(true);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [lectureInfo, setLectureInfo] = useState<any>(null);
+  const [lectureForm, setLectureForm] = useState({
+    title: "",
+    description: "",
+    location: "",
+    price: "",
+    date_time: "",
+    max_participants: "",
+    registration_deadline: "",
+    contact_info: "",
+    additional_info: "",
+  });
   const [postForm, setPostForm] = useState<PostForm>({
     title: "",
     content: "",
@@ -170,6 +182,7 @@ export default function Admin() {
       fetchServices();
       fetchLectureRegistrations();
       fetchLectureConfig();
+      fetchLectureInfo();
       fetchChurchImages();
       fetchPastorInfo();
       fetchChurchInfo();
@@ -606,6 +619,89 @@ export default function Admin() {
       setLectureEnabled(data?.value === 'true');
     } catch (error) {
       console.error('Erro ao carregar configuração:', error);
+    }
+  };
+
+  const fetchLectureInfo = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('lecture_info')
+        .select('*')
+        .eq('is_active', true)
+        .limit(1)
+        .maybeSingle();
+
+      if (error) throw error;
+      
+      if (data) {
+        setLectureInfo(data);
+        setLectureForm({
+          title: data.title || "",
+          description: data.description || "",
+          location: data.location || "",
+          price: data.price ? data.price.toString() : "",
+          date_time: data.date_time ? new Date(data.date_time).toISOString().slice(0, 16) : "",
+          max_participants: data.max_participants ? data.max_participants.toString() : "",
+          registration_deadline: data.registration_deadline ? new Date(data.registration_deadline).toISOString().slice(0, 16) : "",
+          contact_info: data.contact_info || "",
+          additional_info: data.additional_info || "",
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao carregar informações da palestra:', error);
+    }
+  };
+
+  const handleSaveLectureInfo = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    try {
+      const lectureData = {
+        title: lectureForm.title,
+        description: lectureForm.description || null,
+        location: lectureForm.location || null,
+        price: lectureForm.price ? parseFloat(lectureForm.price) : null,
+        date_time: lectureForm.date_time ? new Date(lectureForm.date_time).toISOString() : null,
+        max_participants: lectureForm.max_participants ? parseInt(lectureForm.max_participants) : null,
+        registration_deadline: lectureForm.registration_deadline ? new Date(lectureForm.registration_deadline).toISOString() : null,
+        contact_info: lectureForm.contact_info || null,
+        additional_info: lectureForm.additional_info || null,
+        updated_at: new Date().toISOString(),
+      };
+
+      if (lectureInfo) {
+        // Update existing
+        const { error } = await supabase
+          .from('lecture_info')
+          .update(lectureData)
+          .eq('id', lectureInfo.id);
+
+        if (error) throw error;
+      } else {
+        // Create new
+        const { error } = await supabase
+          .from('lecture_info')
+          .insert([lectureData]);
+
+        if (error) throw error;
+      }
+
+      toast({
+        title: "Informações salvas!",
+        description: "As informações da palestra foram atualizadas com sucesso.",
+      });
+
+      fetchLectureInfo();
+    } catch (error) {
+      console.error('Erro ao salvar informações:', error);
+      toast({
+        title: "Erro ao salvar",
+        description: "Ocorreu um erro ao salvar as informações. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -1539,24 +1635,140 @@ export default function Admin() {
             </TabsContent>
 
             <TabsContent value="lecture">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <CardTitle>Inscrições Palestra de Casais ({lectureRegistrations.length})</CardTitle>
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-muted-foreground">
-                        {lectureEnabled ? "Ativa" : "Inativa"}
-                      </span>
-                      <Button 
-                        onClick={handleToggleLectureFeature}
-                        variant={lectureEnabled ? "destructive" : "default"}
-                        size="sm"
-                      >
-                        {lectureEnabled ? "Desativar Área" : "Ativar Área"}
+              <div className="space-y-6">
+                {/* Lecture Information Form */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Informações da Palestra</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <form onSubmit={handleSaveLectureInfo} className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="lectureTitle">Título da Palestra *</Label>
+                          <Input
+                            id="lectureTitle"
+                            value={lectureForm.title}
+                            onChange={(e) => setLectureForm({ ...lectureForm, title: e.target.value })}
+                            placeholder="Ex: Palestra para Casais"
+                            required
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="lectureLocation">Local</Label>
+                          <Input
+                            id="lectureLocation"
+                            value={lectureForm.location}
+                            onChange={(e) => setLectureForm({ ...lectureForm, location: e.target.value })}
+                            placeholder="Ex: Assembleia de Deus Templo Central"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="lectureDescription">Descrição</Label>
+                        <Textarea
+                          id="lectureDescription"
+                          value={lectureForm.description}
+                          onChange={(e) => setLectureForm({ ...lectureForm, description: e.target.value })}
+                          placeholder="Descrição da palestra..."
+                          rows={3}
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="lecturePrice">Valor (R$)</Label>
+                          <Input
+                            id="lecturePrice"
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={lectureForm.price}
+                            onChange={(e) => setLectureForm({ ...lectureForm, price: e.target.value })}
+                            placeholder="0.00"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="lectureDateTime">Data e Horário</Label>
+                          <Input
+                            id="lectureDateTime"
+                            type="datetime-local"
+                            value={lectureForm.date_time}
+                            onChange={(e) => setLectureForm({ ...lectureForm, date_time: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="maxParticipants">Máximo de Participantes</Label>
+                          <Input
+                            id="maxParticipants"
+                            type="number"
+                            min="1"
+                            value={lectureForm.max_participants}
+                            onChange={(e) => setLectureForm({ ...lectureForm, max_participants: e.target.value })}
+                            placeholder="Ex: 50"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="registrationDeadline">Prazo de Inscrição</Label>
+                          <Input
+                            id="registrationDeadline"
+                            type="datetime-local"
+                            value={lectureForm.registration_deadline}
+                            onChange={(e) => setLectureForm({ ...lectureForm, registration_deadline: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="contactInfo">Informações de Contato</Label>
+                          <Input
+                            id="contactInfo"
+                            value={lectureForm.contact_info}
+                            onChange={(e) => setLectureForm({ ...lectureForm, contact_info: e.target.value })}
+                            placeholder="Ex: WhatsApp: (88) 9999-9999"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="additionalInfo">Informações Adicionais</Label>
+                        <Textarea
+                          id="additionalInfo"
+                          value={lectureForm.additional_info}
+                          onChange={(e) => setLectureForm({ ...lectureForm, additional_info: e.target.value })}
+                          placeholder="Ex: Traga sua Bíblia..."
+                          rows={2}
+                        />
+                      </div>
+
+                      <Button type="submit" disabled={isSubmitting} variant="hero" className="w-full">
+                        {isSubmitting ? "Salvando..." : "Salvar Informações da Palestra"}
                       </Button>
+                    </form>
+                  </CardContent>
+                </Card>
+
+                {/* Lecture Registrations */}
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between">
+                    <CardTitle>Inscrições Palestra de Casais ({lectureRegistrations.length})</CardTitle>
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">
+                          {lectureEnabled ? "Ativa" : "Inativa"}
+                        </span>
+                        <Button 
+                          onClick={handleToggleLectureFeature}
+                          variant={lectureEnabled ? "destructive" : "default"}
+                          size="sm"
+                        >
+                          {lectureEnabled ? "Desativar Área" : "Ativar Área"}
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                </CardHeader>
+                  </CardHeader>
                 <CardContent>
                   {lectureRegistrations.length === 0 ? (
                     <div className="text-center py-8">
@@ -1614,9 +1826,10 @@ export default function Admin() {
                       ))}
                     </div>
                   )}
-                </CardContent>
-              </Card>
-            </TabsContent>
+                 </CardContent>
+               </Card>
+              </div>
+             </TabsContent>
 
             <TabsContent value="images">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
