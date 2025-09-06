@@ -1491,6 +1491,7 @@ export default function Admin() {
                               }
 
                               try {
+                                console.log('Deletando pastor com ID:', pastorInfo.id);
                                 const { error } = await supabase
                                   .from('pastor_info')
                                   .update({ is_active: false })
@@ -1498,12 +1499,16 @@ export default function Admin() {
 
                                 if (error) throw error;
 
+                                console.log('Pastor marcado como inativo com sucesso');
                                 toast({
                                   title: "Pastor excluído!",
                                   description: "As informações do pastor foram removidas com sucesso.",
                                 });
 
-                                fetchPastorInfo();
+                                // Aguarda um pouco antes de atualizar a lista
+                                await new Promise(resolve => setTimeout(resolve, 100));
+                                await fetchPastorInfo();
+                                console.log('fetchPastorInfo chamado');
                               } catch (error) {
                                 console.error('Erro ao excluir pastor:', error);
                                 toast({
