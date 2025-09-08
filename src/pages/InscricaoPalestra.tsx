@@ -32,6 +32,7 @@ export default function InscricaoPalestra() {
   const [showPayment, setShowPayment] = useState(false);
   const [lectureEnabled, setLectureEnabled] = useState(true);
   const [loading, setLoading] = useState(true);
+  const [lectureInfo, setLectureInfo] = useState<any>(null);
   
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -49,6 +50,7 @@ export default function InscricaoPalestra() {
 
   useEffect(() => {
     checkLectureStatus();
+    fetchLectureInfo();
   }, []);
 
   const checkLectureStatus = async () => {
@@ -63,6 +65,21 @@ export default function InscricaoPalestra() {
       setLectureEnabled(data?.value === 'true');
     } catch (error) {
       console.error('Erro ao verificar status da palestra:', error);
+    }
+  };
+
+  const fetchLectureInfo = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('lecture_info')
+        .select('*')
+        .eq('is_active', true)
+        .single();
+
+      if (error && error.code !== 'PGRST116') throw error;
+      setLectureInfo(data);
+    } catch (error) {
+      console.error('Erro ao carregar informações da palestra:', error);
     } finally {
       setLoading(false);
     }
@@ -86,14 +103,17 @@ export default function InscricaoPalestra() {
 
       if (error) throw error;
 
+      // Usar o valor da palestra ou valor padrão
+      const lecturePrice = lectureInfo?.price || 100;
+      
       // Dados PIX para geração do QR Code
       const pixData = {
         pixKey: "103.646.613-21",
         receiverName: "Elnatã Oliveira da Rocha Sousa",
         city: "Arapiraca",
-        amount: "100.00",
+        amount: lecturePrice.toFixed(2),
         txId: "PALESTRA" + Date.now(),
-        description: "Palestra de Casais - ADTC Araporanga"
+        description: lectureInfo?.title || "Palestra de Casais - ADTC Araporanga"
       };
 
       // Formato EMV para PIX (padrão brasileiro)
@@ -191,7 +211,7 @@ export default function InscricaoPalestra() {
               </div>
               
               <div className="space-y-2 text-sm">
-                <p><strong>Valor:</strong> R$ 100,00</p>
+                <p><strong>Valor:</strong> R$ {lectureInfo?.price ? lectureInfo.price.toFixed(2).replace('.', ',') : '100,00'}</p>
                 <p><strong>Recebedor:</strong> Elnatã Oliveira da Rocha Sousa</p>
                 <p><strong>CPF:</strong> 103.646.613-21</p>
               </div>
@@ -233,17 +253,20 @@ export default function InscricaoPalestra() {
     <div className="min-h-screen bg-background">
       <Navigation />
       <main className="container mx-auto px-4 py-8">
-        <Card className="max-w-2xl mx-auto">
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl">Inscrição Palestra de Casais</CardTitle>
-            <CardDescription>
-              <div className="space-y-1">
-                <p><strong>Local:</strong> ADTC Araporanga</p>
-                <p><strong>Data:</strong> 13/12/2025</p>
-                <p><strong>Investimento:</strong> R$ 100,00</p>
-              </div>
-            </CardDescription>
-          </CardHeader>
+          <Card className="max-w-2xl mx-auto">
+            <CardHeader className="text-center">
+              <CardTitle className="text-2xl">{lectureInfo?.title || 'Inscrição Palestra de Casais'}</CardTitle>
+              <CardDescription>
+                <div className="space-y-1">
+                  <p><strong>Local:</strong> {lectureInfo?.location || 'ADTC Araporanga'}</p>
+                  <p><strong>Data:</strong> {lectureInfo?.date_time ? new Date(lectureInfo.date_time).toLocaleDateString('pt-BR') : 'A definir'}</p>
+                  <p><strong>Investimento:</strong> R$ {lectureInfo?.price ? lectureInfo.price.toFixed(2).replace('.', ',') : '100,00'}</p>
+                  {lectureInfo?.description && (
+                    <p className="text-sm mt-2 text-muted-foreground">{lectureInfo.description}</p>
+                  )}
+                </div>
+              </CardDescription>
+            </CardHeader>
           <CardContent>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
