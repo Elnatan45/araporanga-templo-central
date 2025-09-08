@@ -120,7 +120,17 @@ export default function InscricaoPalestra() {
     const message = encodeURIComponent(
       `Olá! Realizei a inscrição para a Palestra de Casais e gostaria de enviar o comprovante de pagamento.\n\nDados da inscrição:\nEsposo: ${formData.nomeEsposo}\nEsposa: ${formData.nomeEsposa}`
     );
-    window.open(`https://wa.me/5588988236003?text=${message}`, "_blank");
+    
+    const whatsappUrl = `https://wa.me/5588988236003?text=${message}`;
+    
+    // Tenta abrir em nova aba primeiro
+    const newWindow = window.open(whatsappUrl, "_blank");
+    
+    // Se bloqueado, redireciona na mesma aba
+    if (!newWindow || newWindow.closed || typeof newWindow.closed === "undefined") {
+      // Fallback: redireciona na mesma janela
+      window.location.href = whatsappUrl;
+    }
   };
 
   if (loading) {
@@ -195,6 +205,13 @@ export default function InscricaoPalestra() {
                 <Button onClick={handleWhatsAppRedirect} className="w-full">
                   Enviar Comprovante via WhatsApp
                 </Button>
+                
+                <div className="text-xs text-muted-foreground bg-muted/30 p-3 rounded-lg">
+                  <p className="font-medium mb-2">Caso o botão não funcione:</p>
+                  <p>1. Abra o WhatsApp manualmente</p>
+                  <p>2. Envie para: <span className="font-mono">(88) 98823-6003</span></p>
+                  <p>3. Mencione os nomes do casal na mensagem</p>
+                </div>
               </div>
 
               <Button 
