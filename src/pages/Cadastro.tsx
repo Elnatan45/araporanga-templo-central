@@ -8,9 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { UserCheck, Users, CalendarIcon } from "lucide-react";
+import { UserCheck, Users, CalendarIcon, Droplets } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -21,6 +22,7 @@ interface FormData {
   civilStatus: string;
   gender: string;
   congregation: string;
+  isBaptized: boolean;
 }
 
 const congregations = [
@@ -51,6 +53,7 @@ export default function Cadastro() {
     civilStatus: "",
     gender: "",
     congregation: "",
+    isBaptized: false,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
@@ -78,6 +81,7 @@ export default function Cadastro() {
           civil_status: formData.civilStatus as any,
           gender: formData.gender as any,
           congregation: formData.congregation as any,
+          is_baptized: formData.isBaptized,
         });
 
       if (error) throw error;
@@ -94,6 +98,7 @@ export default function Cadastro() {
         civilStatus: "",
         gender: "",
         congregation: "",
+        isBaptized: false,
       });
     } catch (error) {
       console.error('Erro ao cadastrar membro:', error);
@@ -214,7 +219,26 @@ export default function Cadastro() {
                   </Select>
                 </div>
 
-                <Button 
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox 
+                      id="isBaptized" 
+                      checked={formData.isBaptized}
+                      onCheckedChange={(checked) => 
+                        setFormData({ ...formData, isBaptized: checked as boolean })
+                      }
+                    />
+                    <Label htmlFor="isBaptized" className="flex items-center gap-2 text-sm font-medium">
+                      <Droplets className="h-4 w-4 text-blue-500" />
+                      Batizado(a) nas águas
+                    </Label>
+                  </div>
+                  <p className="text-xs text-muted-foreground ml-6">
+                    Marque esta opção se você já foi batizado(a) nas águas
+                  </p>
+                </div>
+
+                <Button
                   type="submit" 
                   className="w-full" 
                   variant="hero" 

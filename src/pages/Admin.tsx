@@ -13,7 +13,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Shield, Users, MessageSquare, Plus, Clock, Edit, Trash2, Image, Star, User, BarChart3, Building2 } from "lucide-react";
+import { addDays, isSameMonth, startOfMonth, endOfMonth, isSameDay } from "date-fns";
+import { Shield, Users, MessageSquare, Plus, Clock, Edit, Trash2, Image, Star, User, BarChart3, Building2, Calendar, Gift } from "lucide-react";
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 
 interface ChurchInfo {
@@ -33,6 +34,7 @@ interface Member {
   civil_status: string;
   gender: string;
   congregation: string;
+  is_baptized: boolean;
   created_at: string;
 }
 
@@ -204,6 +206,7 @@ export default function Admin() {
       total: filteredMembers.length,
       male: filteredMembers.filter(m => m.gender === 'masculino').length,
       female: filteredMembers.filter(m => m.gender === 'feminino').length,
+      baptized: filteredMembers.filter(m => m.is_baptized).length,
       averageAge: 0,
       ageGroups: {
         '0-17': 0,
@@ -237,10 +240,44 @@ export default function Admin() {
     return stats;
   };
 
+  // Get upcoming birthdays (next 30 days)
+  const getUpcomingBirthdays = () => {
+    const today = new Date();
+    const next30Days = addDays(today, 30);
+    
+    return filteredMembers
+      .filter(m => m.birth_date)
+      .map(m => {
+        const birthDate = new Date(m.birth_date + 'T12:00:00');
+        const currentYear = today.getFullYear();
+        const thisYearBirthday = new Date(currentYear, birthDate.getMonth(), birthDate.getDate());
+        const nextYearBirthday = new Date(currentYear + 1, birthDate.getMonth(), birthDate.getDate());
+        
+        // Calculate age they will turn
+        const age = currentYear - birthDate.getFullYear();
+        
+        // Determine which birthday is coming up
+        let upcomingBirthday = thisYearBirthday;
+        if (thisYearBirthday < today) {
+          upcomingBirthday = nextYearBirthday;
+        }
+        
+        return {
+          ...m,
+          upcomingBirthday,
+          age: thisYearBirthday >= today ? age : age + 1,
+          daysUntil: Math.ceil((upcomingBirthday.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+        };
+      })
+      .filter(m => m.daysUntil >= 0 && m.daysUntil <= 30)
+      .sort((a, b) => a.daysUntil - b.daysUntil);
+  };
+
   const congregationStats = Object.keys(congregationLabels).map(key => {
     const congregationMembers = members.filter(m => m.congregation === key);
     const male = congregationMembers.filter(m => m.gender === 'masculino').length;
     const female = congregationMembers.filter(m => m.gender === 'feminino').length;
+    const baptized = congregationMembers.filter(m => m.is_baptized).length;
     
     const ages = congregationMembers
       .filter(m => m.birth_date)
@@ -260,11 +297,13 @@ export default function Admin() {
       total: congregationMembers.length,
       male,
       female,
+      baptized,
       averageAge
     };
   });
 
   const stats = getStatistics();
+  const upcomingBirthdays = getUpcomingBirthdays();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1975,7 +2014,7 @@ export default function Admin() {
                 </Card>
 
                 {/* General Statistics */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                   <Card>
                     <CardContent className="p-6">
                       <div className="flex items-center gap-2">
@@ -2023,7 +2062,76 @@ export default function Admin() {
                       </div>  
                     </CardContent>
                   </Card>
+
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="flex items-center gap-2">
+                        <Star className="h-8 w-8 text-blue-600" />
+                        <div>
+                          <p className="text-2xl font-bold">{stats.baptized}</p>
+                          <p className="text-sm text-muted-foreground">Batizados</p>
+                        </div>
+                      </div>  
+                    </CardContent>
+                  </Card>
                 </div>
+
+                {/* Upcoming Birthdays */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Gift className="h-5 w-5" />
+                      Aniversariantes dos Próximos 30 Dias
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {upcomingBirthdays.length === 0 ? (
+                      <div className="text-center py-8">
+                        <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                        <p className="text-muted-foreground">Nenhum aniversário nos próximos 30 dias.</p>
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Nome</TableHead>
+                              <TableHead>Data de Aniversário</TableHead>
+                              <TableHead>Idade</TableHead>
+                              <TableHead>Dias Restantes</TableHead>
+                              <TableHead>Congregação</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {upcomingBirthdays.map((member) => (
+                              <TableRow key={member.id}>
+                                <TableCell className="font-medium">{member.full_name}</TableCell>
+                                <TableCell>
+                                  {format(new Date(member.birth_date + 'T12:00:00'), "dd/MM", { locale: ptBR })}
+                                </TableCell>
+                                <TableCell>{member.age} anos</TableCell>
+                                <TableCell>
+                                  <div className="flex items-center gap-1">
+                                    {member.daysUntil === 0 ? (
+                                      <span className="text-green-600 font-bold">Hoje! 🎉</span>
+                                    ) : member.daysUntil === 1 ? (
+                                      <span className="text-orange-600 font-bold">Amanhã</span>
+                                    ) : (
+                                      <span>{member.daysUntil} dias</span>
+                                    )}
+                                  </div>
+                                </TableCell>
+                                <TableCell className="text-sm">
+                                  {congregationLabels[member.congregation as keyof typeof congregationLabels]}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
 
                 {/* Age Groups */}
                 <Card>
@@ -2056,6 +2164,7 @@ export default function Admin() {
                             <TableHead>Total</TableHead>
                             <TableHead>Homens</TableHead>
                             <TableHead>Mulheres</TableHead>
+                            <TableHead>Batizados</TableHead>
                             <TableHead>Idade Média</TableHead>
                           </TableRow>
                         </TableHeader>
@@ -2066,6 +2175,7 @@ export default function Admin() {
                               <TableCell>{stat.total}</TableCell>
                               <TableCell>{stat.male}</TableCell>
                               <TableCell>{stat.female}</TableCell>
+                              <TableCell>{stat.baptized}</TableCell>
                               <TableCell>{stat.averageAge} anos</TableCell>
                             </TableRow>
                           ))}
@@ -2098,6 +2208,7 @@ export default function Admin() {
                                 <TableHead>Data de Nascimento</TableHead>
                                 <TableHead>Gênero</TableHead>
                                 <TableHead>Estado Civil</TableHead>
+                                <TableHead>Batizado</TableHead>
                                 <TableHead>Data de Cadastro</TableHead>
                               </TableRow>
                             </TableHeader>
@@ -2113,6 +2224,13 @@ export default function Admin() {
                                   </TableCell>
                                   <TableCell>{genderLabels[member.gender as keyof typeof genderLabels]}</TableCell>
                                   <TableCell>{civilStatusLabels[member.civil_status as keyof typeof civilStatusLabels]}</TableCell>
+                                  <TableCell>
+                                    {member.is_baptized ? (
+                                      <span className="text-blue-600 font-medium">✓ Sim</span>
+                                    ) : (
+                                      <span className="text-gray-500">Não</span>
+                                    )}
+                                  </TableCell>
                                   <TableCell>
                                     {format(new Date(member.created_at), "dd/MM/yyyy", { locale: ptBR })}
                                   </TableCell>

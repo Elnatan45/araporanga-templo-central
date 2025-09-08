@@ -200,6 +200,7 @@ export type Database = {
           full_name: string
           gender: Database["public"]["Enums"]["gender"]
           id: string
+          is_baptized: boolean | null
           updated_at: string
         }
         Insert: {
@@ -210,6 +211,7 @@ export type Database = {
           full_name: string
           gender: Database["public"]["Enums"]["gender"]
           id?: string
+          is_baptized?: boolean | null
           updated_at?: string
         }
         Update: {
@@ -220,6 +222,7 @@ export type Database = {
           full_name?: string
           gender?: Database["public"]["Enums"]["gender"]
           id?: string
+          is_baptized?: boolean | null
           updated_at?: string
         }
         Relationships: []
