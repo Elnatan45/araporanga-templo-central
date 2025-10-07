@@ -85,6 +85,18 @@ export default function InscricaoPalestra() {
     }
   };
 
+  // Função para calcular CRC16-CCITT
+  const crc16 = (str: string) => {
+    let crc = 0xFFFF;
+    for (let i = 0; i < str.length; i++) {
+      crc ^= str.charCodeAt(i) << 8;
+      for (let j = 0; j < 8; j++) {
+        crc = (crc & 0x8000) ? (crc << 1) ^ 0x1021 : crc << 1;
+      }
+    }
+    return (crc & 0xFFFF).toString(16).toUpperCase().padStart(4, '0');
+  };
+
   const onSubmit = async (data: FormData) => {
     try {
       // Salvar no banco de dados
@@ -105,19 +117,22 @@ export default function InscricaoPalestra() {
 
       // Usar o valor da palestra ou valor padrão
       const lecturePrice = lectureInfo?.price || 100;
+      const amount = lecturePrice.toFixed(2);
       
-      // Dados PIX para geração do QR Code
-      const pixData = {
-        pixKey: "103.646.613-21",
-        receiverName: "Elnatã Oliveira da Rocha Sousa",
-        city: "Arapiraca",
-        amount: lecturePrice.toFixed(2),
-        txId: "PALESTRA" + Date.now(),
-        description: lectureInfo?.title || "Palestra de Casais - ADTC Araporanga"
-      };
-
-      // Formato EMV para PIX (padrão brasileiro)
-      const pixString = `00020126580014br.gov.bcb.pix0136${pixData.pixKey}52040000530398654${pixData.amount.length.toString().padStart(2, '0')}${pixData.amount}5802BR5925${pixData.receiverName}6009${pixData.city}62070503***6304`;
+      // Chave PIX (CPF sem formatação)
+      const pixKey = "10364661321";
+      const receiverName = "Elnata Oliveira da Rocha";
+      const city = "Arapiraca";
+      
+      // Construir payload PIX no formato EMV
+      const merchantAccount = `0014br.gov.bcb.pix01${pixKey.length.toString().padStart(2, '0')}${pixKey}`;
+      const merchantAccountInfo = `26${merchantAccount.length.toString().padStart(2, '0')}${merchantAccount}`;
+      
+      const payload = 
+        `00020101021${merchantAccountInfo}52040000530398654${amount.length.toString().padStart(2, '0')}${amount}5802BR59${receiverName.length.toString().padStart(2, '0')}${receiverName}60${city.length.toString().padStart(2, '0')}${city}6304`;
+      
+      // Calcular e adicionar CRC16
+      const pixString = payload + crc16(payload);
       
       // Gerar QR Code
       const qrCodeDataUrl = await QRCode.toDataURL(pixString, {
