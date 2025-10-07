@@ -117,7 +117,7 @@ export default function InscricaoPalestra() {
       };
 
       // Formato EMV para PIX (padrão brasileiro)
-      const pixString = `00020101021226830014br.gov.bcb.pix2561${pixData.pixKey}5204000053039865802BR5925${pixData.receiverName}6008${pixData.city}62070503***6304`;
+      const pixString = `00020126580014br.gov.bcb.pix0136${pixData.pixKey}52040000530398654${pixData.amount.length.toString().padStart(2, '0')}${pixData.amount}5802BR5925${pixData.receiverName}6009${pixData.city}62070503***6304`;
       
       // Gerar QR Code
       const qrCodeDataUrl = await QRCode.toDataURL(pixString, {
