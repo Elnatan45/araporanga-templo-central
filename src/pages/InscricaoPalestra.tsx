@@ -202,15 +202,7 @@ export default function InscricaoPalestra() {
     );
     
     const whatsappUrl = `https://wa.me/5588988236003?text=${message}`;
-    
-    // Tenta abrir em nova aba primeiro
-    const newWindow = window.open(whatsappUrl, "_blank");
-    
-    // Se bloqueado, redireciona na mesma aba
-    if (!newWindow || newWindow.closed || typeof newWindow.closed === "undefined") {
-      // Fallback: redireciona na mesma janela
-      window.location.href = whatsappUrl;
-    }
+    window.location.href = whatsappUrl;
   };
 
   if (loading) {
