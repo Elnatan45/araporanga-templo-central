@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { Navigation } from "@/components/Navigation";
@@ -29,6 +30,7 @@ type FormData = z.infer<typeof formSchema>;
 
 export default function InscricaoPalestra() {
   const [qrCodeUrl, setQrCodeUrl] = useState<string>("");
+  const [pixPayload, setPixPayload] = useState<string>("");
   const [showPayment, setShowPayment] = useState(false);
   const [lectureEnabled, setLectureEnabled] = useState(true);
   const [loading, setLoading] = useState(true);
@@ -85,16 +87,64 @@ export default function InscricaoPalestra() {
     }
   };
 
-  // Função para calcular CRC16-CCITT
+  // Função para calcular CRC16-CCITT (polinômio 0x1021)
   const crc16 = (str: string) => {
     let crc = 0xFFFF;
     for (let i = 0; i < str.length; i++) {
       crc ^= str.charCodeAt(i) << 8;
       for (let j = 0; j < 8; j++) {
-        crc = (crc & 0x8000) ? (crc << 1) ^ 0x1021 : crc << 1;
+        crc = (crc & 0x8000) ? ((crc << 1) ^ 0x1021) : (crc << 1);
+        crc &= 0xFFFF;
       }
     }
-    return (crc & 0xFFFF).toString(16).toUpperCase().padStart(4, '0');
+    return crc.toString(16).toUpperCase().padStart(4, '0');
+  };
+
+  // Helpers para montar TLV EMV
+  const tlv = (id: string, value: string) => `${id}${value.length.toString().padStart(2, '0')}${value}`;
+  const sanitizeAscii = (str: string, max: number) =>
+    str
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // remove acentos
+      .replace(/[^\x20-\x7E]/g, '') // força ASCII
+      .slice(0, max);
+
+  const buildPixPayload = (
+    {
+      pixKey,
+      receiverName,
+      city,
+      amount,
+      txId,
+      description,
+    }: { pixKey: string; receiverName: string; city: string; amount: string; txId: string; description?: string }
+  ) => {
+    const name = sanitizeAscii(receiverName, 25);
+    const merchantCity = sanitizeAscii(city, 15);
+    const desc = description ? sanitizeAscii(description, 99) : '';
+
+    // Merchant Account Information (26): GUI (00), Key(01), Description(02 opcional)
+    const merchantAccountInfo = tlv('00', 'br.gov.bcb.pix') + tlv('01', pixKey) + (desc ? tlv('02', desc) : '');
+
+    // Additional Data Field Template (62): txid (05)
+    const additionalData = tlv('05', sanitizeAscii(txId, 25));
+
+    // Payload base sem CRC (63)
+    const payloadSemCRC =
+      tlv('00', '01') + // Payload Format Indicator
+      tlv('01', '11') + // Point of Initiation Method (11 = estático)
+      tlv('26', merchantAccountInfo) +
+      tlv('52', '0000') + // Merchant Category Code
+      tlv('53', '986') + // Moeda (BRL)
+      tlv('54', amount) + // Valor
+      tlv('58', 'BR') + // País
+      tlv('59', name) + // Nome do recebedor (<=25)
+      tlv('60', merchantCity) + // Cidade (<=15)
+      tlv('62', additionalData) + // Dados adicionais com txid
+      '6304'; // Campo do CRC com tamanho reservado
+
+    const crc = crc16(payloadSemCRC);
+    return payloadSemCRC + crc;
   };
 
   const onSubmit = async (data: FormData) => {
@@ -115,38 +165,33 @@ export default function InscricaoPalestra() {
 
       if (error) throw error;
 
-      // Usar o valor da palestra ou valor padrão
-      const lecturePrice = lectureInfo?.price || 100;
+      // Valor dinâmico da palestra
+      const lecturePrice = Number(lectureInfo?.price) || 100;
       const amount = lecturePrice.toFixed(2);
-      
-      // Chave PIX (CPF sem formatação)
-      const pixKey = "10364661321";
-      const receiverName = "Elnata Oliveira da Rocha";
-      const city = "Arapiraca";
-      
-      // Construir payload PIX no formato EMV
-      const merchantAccount = `0014br.gov.bcb.pix01${pixKey.length.toString().padStart(2, '0')}${pixKey}`;
-      const merchantAccountInfo = `26${merchantAccount.length.toString().padStart(2, '0')}${merchantAccount}`;
-      
-      const payload = 
-        `00020101021${merchantAccountInfo}52040000530398654${amount.length.toString().padStart(2, '0')}${amount}5802BR59${receiverName.length.toString().padStart(2, '0')}${receiverName}60${city.length.toString().padStart(2, '0')}${city}6304`;
-      
-      // Calcular e adicionar CRC16
-      const pixString = payload + crc16(payload);
-      
+
+      // Dados do recebedor (sanitizados no payload)
+      const pixKey = '10364661321'; // CPF sem pontuação
+      const receiverName = 'Elnata Oliveira da Rocha Sousa';
+      const city = 'Arapiraca';
+      const txId = `PALESTRA${Date.now().toString().slice(-10)}`; // máx 25 chars
+      const description = lectureInfo?.title || 'Palestra de Casais - ADTC Araporanga';
+
+      const pixString = buildPixPayload({ pixKey, receiverName, city, amount, txId, description });
+      setPixPayload(pixString);
+
       // Gerar QR Code
       const qrCodeDataUrl = await QRCode.toDataURL(pixString, {
         width: 300,
         margin: 2,
       });
-      
+
       setQrCodeUrl(qrCodeDataUrl);
       setShowPayment(true);
-      
-      toast.success("Inscrição realizada e dados salvos! Escaneie o QR Code para pagamento.");
+
+      toast.success('Inscrição realizada e dados salvos! Escaneie o QR Code para pagamento.');
     } catch (error) {
       console.error('Erro ao processar inscrição:', error);
-      toast.error("Erro ao processar inscrição. Tente novamente.");
+      toast.error('Erro ao processar inscrição. Tente novamente.');
     }
   };
 
@@ -226,7 +271,7 @@ export default function InscricaoPalestra() {
               </div>
               
               <div className="space-y-2 text-sm">
-                <p><strong>Valor:</strong> R$ {lectureInfo?.price ? lectureInfo.price.toFixed(2).replace('.', ',') : '100,00'}</p>
+                <p><strong>Valor:</strong> R$ {lectureInfo?.price ? Number(lectureInfo.price).toFixed(2).replace('.', ',') : '100,00'}</p>
                 <p><strong>Recebedor:</strong> Elnatã Oliveira da Rocha Sousa</p>
                 <p><strong>CPF:</strong> 103.646.613-21</p>
               </div>
@@ -247,15 +292,25 @@ export default function InscricaoPalestra() {
                   <p>2. Envie para: <span className="font-mono">(88) 98823-6003</span></p>
                   <p>3. Mencione os nomes do casal na mensagem</p>
                 </div>
-              </div>
+                </div>
 
-              <Button 
-                variant="outline" 
-                onClick={() => setShowPayment(false)}
-                className="w-full"
-              >
-                Voltar ao Formulário
-              </Button>
+                <Separator />
+
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">PIX Copia e Cola</p>
+                  <Textarea readOnly value={pixPayload} rows={3} className="font-mono text-xs" />
+                  <Button variant="secondary" className="w-full" onClick={() => { navigator.clipboard.writeText(pixPayload); toast.success('Código PIX copiado!'); }}>
+                    Copiar código PIX
+                  </Button>
+                </div>
+
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowPayment(false)}
+                  className="w-full"
+                >
+                  Voltar ao Formulário
+                </Button>
             </CardContent>
           </Card>
         </main>
